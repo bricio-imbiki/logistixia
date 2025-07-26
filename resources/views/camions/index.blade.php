@@ -14,11 +14,11 @@
                 <span>Gestion des camions</span>
             </h2>
 
-            <a href="{{ route('camions.create') }}"
-               class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg shadow transition">
-                <x-heroicon-o-plus class="w-5 h-5" />
-                Ajouter
-            </a>
+          <a href="{{ route('camions.create') }}"
+   class="no-underline inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg shadow transition">
+    <x-heroicon-o-plus class="w-5 h-5" />
+    Ajouter
+</a>
         </div>
 
 

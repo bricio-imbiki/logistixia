@@ -16,36 +16,47 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
                 <!-- Client -->
-                <div>
+                <div class="md:col-span-2">
                     <label for="client_id" class="block text-sm font-medium text-gray-700">Client *</label>
-                    <select name="client_id" id="client_id" required
-                            class="mt-1 block w-full rounded border border-gray-300 px-3 py-2">
-                        <option value="">-- Sélectionner un client --</option>
-                        @foreach ($clients as $client)
-                            <option value="{{ $client->id }}"
-                                @selected(old('client_id', $marchandise?->client_id ?? '') == $client->id)>
-                                {{ $client->raison_sociale }}
-                            </option>
-                        @endforeach
-                    </select>
+                    <div class="flex gap-2">
+                        <select name="client_id" id="client_id" required
+                                class="mt-1 block w-full rounded border border-gray-300 px-3 py-2">
+                            <option value="">-- Sélectionner un client --</option>
+                            @foreach ($clients as $client)
+                                <option value="{{ $client->id }}"
+                                    @selected(old('client_id', $marchandise?->client_id ?? '') == $client->id)>
+                                    {{ $client->raison_sociale }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <button type="button" onclick="openClientModal()"
+                                class="mt-1 bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 whitespace-nowrap">
+                            + Ajouter Client
+                        </button>
+                    </div>
                     @error('client_id') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
 
-
                 <!-- Trajet -->
-                <div>
+                <div class="md:col-span-2">
                     <label for="trajet_id" class="block text-sm font-medium text-gray-700">Trajet *</label>
-                    <select name="trajet_id" id="trajet_id" required
-                            class="mt-1 block w-full rounded border border-gray-300 px-3 py-2">
-                        <option value="">-- Sélectionner un trajet --</option>
-                        @foreach($trajets as $trajet)
-                            <option value="{{ $trajet->id }}"
-                                    @selected(old('trajet_id', $marchandise?->trajet_id ?? '') == $trajet->id)>
-                                {{ $trajet->itineraire->lieu_depart }} → {{ $trajet->itineraire->lieu_arrivee }}
-                                ({{ \Carbon\Carbon::parse($trajet->date_depart)->format('d/m/Y') }})
-                            </option>
-                        @endforeach
-                    </select>
+                    <div class="flex gap-2">
+                        <select name="trajet_id" id="trajet_id" required
+                                class="mt-1 block w-full rounded border border-gray-300 px-3 py-2">
+                            <option value="">-- Sélectionner un trajet --</option>
+                            @foreach($trajets as $trajet)
+                                <option value="{{ $trajet->id }}"
+                                        @selected(old('trajet_id', $marchandise?->trajet_id ?? '') == $trajet->id)>
+                                    {{ $trajet->itineraire->lieu_depart }} → {{ $trajet->itineraire->lieu_arrivee }}
+                                    ({{ \Carbon\Carbon::parse($trajet->date_depart)->format('d/m/Y') }})
+                                </option>
+                            @endforeach
+                        </select>
+                        <button type="button" onclick="openTrajetModal()"
+                                class="mt-1 bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700 whitespace-nowrap">
+                            + Ajouter Trajet
+                        </button>
+                    </div>
                     @error('trajet_id') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
 
@@ -125,5 +136,256 @@
                 </x-button>
             </div>
         </form>
+
     </div>
+
+    <!-- Modales -->
+    @include('modals.client-create')
+    @include('modals.trajet-create')
+
+    <script>
+        // === FONCTIONS POUR MODALE CLIENT ===
+        function openClientModal() {
+            const modal = document.getElementById('clientModal');
+            const modalContent = document.getElementById('clientModalContent');
+
+            // Afficher la modale avec l'overlay
+            modal.classList.remove('opacity-0', 'invisible');
+            modal.classList.add('opacity-100', 'visible');
+
+            // Animer le contenu du haut vers le centre
+            setTimeout(() => {
+                modalContent.classList.remove('-translate-y-full', 'scale-95');
+                modalContent.classList.add('translate-y-0', 'scale-100');
+            }, 10);
+
+            // Focus sur le premier champ
+            setTimeout(() => {
+                document.getElementById('modal_raison_sociale')?.focus();
+            }, 350);
+        }
+
+        function closeClientModal() {
+            const modal = document.getElementById('clientModal');
+            const modalContent = document.getElementById('clientModalContent');
+
+            // Animer le contenu vers le haut
+            modalContent.classList.remove('translate-y-0', 'scale-100');
+            modalContent.classList.add('-translate-y-full', 'scale-95');
+
+            // Masquer la modale après l'animation
+            setTimeout(() => {
+                modal.classList.remove('opacity-100', 'visible');
+                modal.classList.add('opacity-0', 'invisible');
+                document.getElementById('clientForm').reset();
+            }, 300);
+        }
+
+        // === FONCTIONS POUR MODALE TRAJET ===
+        function openTrajetModal() {
+            const modal = document.getElementById('trajetModal');
+            const modalContent = document.getElementById('trajetModalContent');
+
+            // Afficher la modale avec l'overlay
+            modal.classList.remove('opacity-0', 'invisible');
+            modal.classList.add('opacity-100', 'visible');
+
+            // Animer le contenu du haut vers le centre
+            setTimeout(() => {
+                modalContent.classList.remove('-translate-y-full', 'scale-95');
+                modalContent.classList.add('translate-y-0', 'scale-100');
+            }, 10);
+
+            // Focus sur le premier champ
+            setTimeout(() => {
+                document.getElementById('modal_camion_id')?.focus();
+            }, 350);
+        }
+
+        function closeTrajetModal() {
+            const modal = document.getElementById('trajetModal');
+            const modalContent = document.getElementById('trajetModalContent');
+
+            // Animer le contenu vers le haut
+            modalContent.classList.remove('translate-y-0', 'scale-100');
+            modalContent.classList.add('-translate-y-full', 'scale-95');
+
+            // Masquer la modale après l'animation
+            setTimeout(() => {
+                modal.classList.remove('opacity-100', 'visible');
+                modal.classList.add('opacity-0', 'invisible');
+                document.getElementById('trajetForm').reset();
+            }, 300);
+        }
+
+        // === SOUMISSION FORMULAIRE CLIENT ===
+        document.getElementById('clientForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+
+            // Désactiver le bouton de soumission
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Enregistrement...';
+
+            fetch('/clients', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': formData.get('_token'),
+                    'Accept': 'application/json'
+                },
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erreur réseau');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Ajouter le nouveau client au select
+                    const select = document.getElementById('client_id');
+                    const option = new Option(data.client.raison_sociale, data.client.id, true, true);
+                    select.appendChild(option);
+
+                    // Fermer la modale
+                    closeClientModal();
+
+                    // Message de succès
+                    showSuccessMessage('Client ajouté avec succès');
+                } else {
+                    throw new Error(data.message || 'Erreur lors de l\'ajout du client');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                showErrorMessage('Erreur lors de l\'ajout du client: ' + error.message);
+            })
+            .finally(() => {
+                // Réactiver le bouton
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            });
+        });
+
+        // === SOUMISSION FORMULAIRE TRAJET ===
+        document.getElementById('trajetForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Enregistrement...';
+
+            fetch('/trajets', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': formData.get('_token'),
+                    'Accept': 'application/json'
+                },
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erreur réseau');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Ajouter le nouveau trajet au select
+                    const select = document.getElementById('trajet_id');
+                    const optionText = `${data.trajet.lieu_depart} → ${data.trajet.lieu_arrivee} (${data.trajet.date_depart})`;
+                    const option = new Option(optionText, data.trajet.id, true, true);
+                    select.appendChild(option);
+
+                    closeTrajetModal();
+                    showSuccessMessage('Trajet ajouté avec succès');
+                } else {
+                    throw new Error(data.message || 'Erreur lors de l\'ajout du trajet');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                showErrorMessage('Erreur lors de l\'ajout du trajet: ' + error.message);
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            });
+        });
+
+        // === FONCTIONS UTILITAIRES ===
+        function showSuccessMessage(message) {
+            // Vous pouvez utiliser une librairie comme Toastr ou créer votre propre système de notification
+            alert(message); // Remplacez par votre système de notification
+        }
+
+        function showErrorMessage(message) {
+            alert(message); // Remplacez par votre système de notification
+        }
+
+        // Fermer les modales en cliquant à l'extérieur ou avec Escape
+        document.addEventListener('click', function(e) {
+            if (e.target.id === 'clientModal') {
+                closeClientModal();
+            }
+            if (e.target.id === 'trajetModal') {
+                closeTrajetModal();
+            }
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const clientModal = document.getElementById('clientModal');
+                const trajetModal = document.getElementById('trajetModal');
+
+                if (clientModal.classList.contains('opacity-100')) {
+                    closeClientModal();
+                }
+                if (trajetModal.classList.contains('opacity-100')) {
+                    closeTrajetModal();
+                }
+            }
+        });
+
+        // Empêcher le scroll du body quand une modale est ouverte
+        function toggleBodyScroll(disable) {
+            if (disable) {
+                document.body.style.overflow = 'hidden';
+            } else {
+                document.body.style.overflow = '';
+            }
+        }
+
+        // Mettre à jour les fonctions d'ouverture pour désactiver le scroll
+        const originalOpenClientModal = openClientModal;
+        const originalOpenTrajetModal = openTrajetModal;
+        const originalCloseClientModal = closeClientModal;
+        const originalCloseTrajetModal = closeTrajetModal;
+
+        openClientModal = function() {
+            toggleBodyScroll(true);
+            originalOpenClientModal();
+        };
+
+        openTrajetModal = function() {
+            toggleBodyScroll(true);
+            originalOpenTrajetModal();
+        };
+
+        closeClientModal = function() {
+            toggleBodyScroll(false);
+            originalCloseClientModal();
+        };
+
+        closeTrajetModal = function() {
+            toggleBodyScroll(false);
+            originalCloseTrajetModal();
+        };
+    </script>
+
 </x-layouts.app>

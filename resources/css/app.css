@@ -10,7 +10,7 @@
         "Instrument Sans", ui-sans-serif, system-ui, sans-serif,
         "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
         "Noto Color Emoji";
-    --sidebar-background: hsl(var(--sidebar-background));
+    background-color: hsl(var(--sidebar-background)) !important;
     --sidebar-foreground: hsl(var(--sidebar-foreground));
     --sidebar-accent: hsl(var(--sidebar-accent));
     --sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
@@ -29,6 +29,34 @@
         background-color: hsl(var(--sidebar-accent));
     }
 
+    /* Lien dans sidebar */
+    .bg-sidebar a,
+    .bg-sidebar-accent a,
+    .sidebar-link {
+        background-color: transparent !important;
+        color: inherit !important;
+        text-decoration: none !important;
+        outline: none !important;
+        box-shadow: none !important;
+        cursor: pointer;
+    }
+
+    /* Survol & focus */
+    .bg-sidebar a:hover,
+    .bg-sidebar a:focus,
+    .sidebar-link:hover,
+    .sidebar-link:focus {
+        background-color: hsl(var(--sidebar-accent)) !important;
+        color: hsl(var(--sidebar-accent-foreground)) !important;
+        outline: none !important;
+        box-shadow: none !important;
+    }
+
+    /* Si tu utilises la classe sidebar-link dans tes liens (fortement recommandé) */
+    .sidebar-link {
+        transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
     .text-sidebar-accent-foreground {
         color: hsl(var(--sidebar-accent-foreground));
     }
@@ -44,16 +72,23 @@
 
 @layer base {
     :root {
-        --sidebar-background: 210 20% 98%;
-        --sidebar-foreground: 215 25% 27%;
-        --sidebar-accent: 217 33% 17%;
+     --sidebar-background: 210 20% 98%; /* clair */
+        /* Bleu foncé */
+        --sidebar-foreground: 210 30% 90%;
+        /* Blanc cassé */
+        --sidebar-accent: 200 80% 50%;
+        /* Bleu vif */
         --sidebar-accent-foreground: 210 40% 98%;
-        --sidebar-border: 214 32% 91%;
-        --sidebar-ring: 221 83% 53%;
+        /* Blanc presque pur */
+        --sidebar-border: 210 25% 30%;
+        /* Bleu foncé un peu plus clair */
+        --sidebar-ring: 200 90% 60%;
+        /* Bleu clair pour focus */
     }
 
+
     .dark {
-        --sidebar-background: 217 33% 17%;
+       --sidebar-background: 217 33% 17%; /* sombre */
         --sidebar-foreground: 210 40% 98%;
         --sidebar-accent: 210 40% 96%;
         --sidebar-accent-foreground: 217 33% 17%;
