@@ -31,6 +31,7 @@
                     @error('client_id') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
 
+
                 <!-- Trajet -->
                 <div>
                     <label for="trajet_id" class="block text-sm font-medium text-gray-700">Trajet *</label>
