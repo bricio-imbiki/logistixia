@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Camions</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .hover-lift {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .hover-lift:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .form-input {
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .status-badge {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in-up {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .file-upload-area {
+            border: 2px dashed #e5e7eb;
+            transition: all 0.3s ease;
+        }
+
+        .file-upload-area:hover {
+            border-color: #6366f1;
+            background-color: #f8fafc;
+        }
+
+        .file-upload-area.drag-over {
+            border-color: #4f46e5;
+            background-color: #eef2ff;
+        }
+    </style>
+</head>
+<body class="min-h-screen gradient-bg">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header Section -->
+        <div class="text-center mb-8 fade-in-up">
+            <h1 class="text-4xl font-bold text-white mb-2">🚛 Gestion des Camions</h1>
+            <p class="text-white/80 text-lg">Système de gestion moderne et intuitif</p>
+        </div>
+
+        <!-- Main Form Container -->
+        <div class="max-w-4xl mx-auto">
+            <div class="glass-effect rounded-3xl shadow-2xl p-8 fade-in-up">
+                <!-- Form Header -->
+                <div class="flex items-center justify-between mb-8">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                            <i data-lucide="truck" class="w-6 h-6 text-white"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-800" id="form-title">Ajouter un nouveau camion</h2>
+                            <p class="text-gray-600">Remplissez les informations ci-dessous</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="resetForm()" class="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-6 py-3 rounded-xl shadow-lg hover-lift transition-all duration-300">
+                        <i data-lucide="plus" class="w-5 h-5"></i>
+                        Nouveau camion
+                    </button>
+                </div>
+
+                <!-- Form -->
+                <form id="truck-form" class="space-y-6">
+                    <!-- Basic Information Section -->
+                    <div class="bg-gray-50 rounded-2xl p-6 space-y-6">
+                        <div class="flex items-center gap-2 mb-4">
+                            <i data-lucide="info" class="w-5 h-5 text-blue-600"></i>
+                            <h3 class="text-lg font-semibold text-gray-800">Informations de base</h3>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Matricule -->
+                            <div class="space-y-2">
+                                <label class="block text-sm font-medium text-gray-700">
+                                    Matricule <span class="text-red-500">*</span>
+                                </label>
+                                <div class="relative">
+                                    <input type="text" id="matricule" name="matricule" required
+                                        class="form-input w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        placeholder="Ex: 1234 TAA 01">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center">
+                                        <i data-lucide="hash" class="w-5 h-5 text-gray-400"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Marque -->
+                            <div class="space-y-2">
+                                <label class="block text-sm font-medium text-gray-700">Marque</label>
+                                <div class="relative">
+                                    <input type="text" id="marque" name="marque"
+                                        class="form-input w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        placeholder="Ex: Mercedes-Benz">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center">
+                                        <i data-lucide="tag" class="w-5 h-5 text-gray-400"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Modèle -->
+                            <div class="space-y-2">
+                                <label class="block text-sm font-medium text-gray-700">Modèle</label>
+                                <div class="relative">
+                                    <input type="text" id="modele" name="modele"
+                                        class="form-input w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        placeholder="Ex: Actros 1845">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center">
+                                        <i data-lucide="car" class="w-5 h-5 text-gray-400"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Année -->
+                            <div class="space-y-2">
+                                <label class="block text-sm font-medium text-gray-700">Année</label>
+                                <div class="relative">
+                                    <input type="number" id="annee" name="annee" min="1950" max="2030"
+                                        class="form-input w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        placeholder="Ex: 2023">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center">
+                                        <i data-lucide="calendar" class="w-5 h-5 text-gray-400"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Technical Specifications Section -->
+                    <div class="bg-gray-50 rounded-2xl p-6 space-y-6">
+                        <div class="flex items-center gap-2 mb-4">
+                            <i data-lucide="settings" class="w-5 h-5 text-purple-600"></i>
+                            <h3 class="text-lg font-semibold text-gray-800">Spécifications techniques</h3>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Capacité -->
+                            <div class="space-y-2">
+                                <label class="block text-sm font-medium text-gray-700">Capacité (kg)</label>
+                                <div class="relative">
+                                    <input type="number" id="capacite_kg" name="capacite_kg" min="0"
+                                        class="form-input w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        placeholder="Ex: 12000">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center">
+                                        <i data-lucide="weight" class="w-5 h-5 text-gray-400"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Statut -->
+                            <div class="space-y-2">
+                                <label class="block text-sm font-medium text-gray-700">Statut</label>
+                                <div class="relative">
+                                    <select id="statut" name="statut"
+                                        class="form-input w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none">
+                                        <option value="disponible">🟢 Disponible</option>
+                                        <option value="en_mission">🟡 En mission</option>
+                                        <option value="panne">🔴 En panne</option>
+                                        <option value="maintenance">🔧 Maintenance</option>
+                                    </select>
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center">
+                                        <i data-lucide="activity" class="w-5 h-5 text-gray-400"></i>
+                                    </div>
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                        <i data-lucide="chevron-down" class="w-5 h-5 text-gray-400"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ownership Section -->
+                    <div class="bg-gray-50 rounded-2xl p-6 space-y-6">
+                        <div class="flex items-center gap-2 mb-4">
+                            <i data-lucide="building" class="w-5 h-5 text-green-600"></i>
+                            <h3 class="text-lg font-semibold text-gray-800">Propriété</h3>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Type de propriété -->
+                            <div class="space-y-2">
+                                <label class="block text-sm font-medium text-gray-700">Type de propriété</label>
+                                <div class="flex gap-4">
+                                    <label class="flex items-center">
+                                        <input type="radio" id="est_interne_oui" name="est_interne" value="1" checked
+                                            class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                        <span class="ml-2 text-sm text-gray-700">Interne</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="radio" id="est_interne_non" name="est_interne" value="0"
+                                            class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                        <span class="ml-2 text-sm text-gray-700">Externe/Loué</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Société propriétaire -->
+                            <div class="space-y-2">
+                                <label class="block text-sm font-medium text-gray-700">Société propriétaire</label>
+                                <div class="relative">
+                                    <input type="text" id="societe_proprietaire" name="societe_proprietaire"
+                                        class="form-input w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        placeholder="Nom de la société (si loué)"
+                                        disabled>
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center">
+                                        <i data-lucide="building-2" class="w-5 h-5 text-gray-400"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Photo Upload Section -->
+                    <div class="bg-gray-50 rounded-2xl p-6 space-y-4">
+                        <div class="flex items-center gap-2 mb-4">
+                            <i data-lucide="image" class="w-5 h-5 text-indigo-600"></i>
+                            <h3 class="text-lg font-semibold text-gray-800">Photo du camion</h3>
+                        </div>
+
+                        <div class="file-upload-area rounded-xl p-8 text-center cursor-pointer" onclick="document.getElementById('photo').click()">
+                            <div id="upload-content">
+                                <i data-lucide="cloud-upload" class="w-12 h-12 text-gray-400 mx-auto mb-4"></i>
+                                <p class="text-gray-600 mb-2">Cliquez pour sélectionner une image</p>
+                                <p class="text-sm text-gray-500">ou glissez-déposez votre fichier ici</p>
+                                <p class="text-xs text-gray-400 mt-2">PNG, JPG, JPEG jusqu'à 10MB</p>
+                            </div>
+                            <div id="preview-container" class="hidden">
+                                <img id="preview-image" class="max-w-full h-48 object-cover rounded-lg mx-auto">
+                                <p id="file-name" class="text-sm text-gray-600 mt-2"></p>
+                            </div>
+                        </div>
+                        <input type="file" id="photo" name="photo" accept="image/*" class="hidden">
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex justify-end gap-4 pt-6">
+                        <button type="button" onclick="resetForm()"
+                            class="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-xl font-medium transition-colors duration-200">
+                            <i data-lucide="x" class="w-4 h-4 inline mr-2"></i>
+                            Annuler
+                        </button>
+                        <button type="submit"
+                            class="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-medium shadow-lg hover-lift transition-all duration-300">
+                            <i data-lucide="save" class="w-4 h-4 inline mr-2"></i>
+                            <span id="submit-text">Enregistrer</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Success Message -->
+        <div id="success-message" class="hidden fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-xl shadow-lg">
+            <div class="flex items-center gap-2">
+                <i data-lucide="check-circle" class="w-5 h-5"></i>
+                <span>Camion enregistré avec succès!</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Form state
+        let isEditMode = false;
+        let currentTruckId = null;
+
+        // DOM elements
+        const form = document.getElementById('truck-form');
+        const photoInput = document.getElementById('photo');
+        const uploadContent = document.getElementById('upload-content');
+        const previewContainer = document.getElementById('preview-container');
+        const previewImage = document.getElementById('preview-image');
+        const fileName = document.getElementById('file-name');
+        const fileUploadArea = document.querySelector('.file-upload-area');
+
+        // Handle ownership type change
+        document.getElementById('est_interne_oui').addEventListener('change', function() {
+            document.getElementById('societe_proprietaire').disabled = this.checked;
+            if (this.checked) {
+                document.getElementById('societe_proprietaire').value = '';
+            }
+        });
+
+        document.getElementById('est_interne_non').addEventListener('change', function() {
+            document.getElementById('societe_proprietaire').disabled = !this.checked;
+        });
+
+        // File upload handling
+        photoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImage.src = e.target.result;
+                    fileName.textContent = file.name;
+                    uploadContent.classList.add('hidden');
+                    previewContainer.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Drag and drop functionality
+        fileUploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('drag-over');
+        });
+
+        fileUploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+        });
+
+        fileUploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                photoInput.files = files;
+                photoInput.dispatchEvent(new Event('change'));
+            }
+        });
+
+        // Form submission
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Simulate form submission
+            const submitBtn = document.querySelector('button[type="submit"]');
+            const submitText = document.getElementById('submit-text');
+
+            submitBtn.disabled = true;
+            submitText.textContent = 'Enregistrement...';
+
+            setTimeout(() => {
+                showSuccessMessage();
+                resetForm();
+                submitBtn.disabled = false;
+                submitText.textContent = 'Enregistrer';
+            }, 2000);
+        });
+
+        // Reset form
+        function resetForm() {
+            form.reset();
+            isEditMode = false;
+            currentTruckId = null;
+
+            document.getElementById('form-title').textContent = 'Ajouter un nouveau camion';
+            document.getElementById('submit-text').textContent = 'Enregistrer';
+            document.getElementById('societe_proprietaire').disabled = true;
+
+            // Reset photo preview
+            uploadContent.classList.remove('hidden');
+            previewContainer.classList.add('hidden');
+            previewImage.src = '';
+            fileName.textContent = '';
+        }
+
+        // Show success message
+        function showSuccessMessage() {
+            const message = document.getElementById('success-message');
+            message.classList.remove('hidden');
+
+            setTimeout(() => {
+                message.classList.add('hidden');
+            }, 3000);
+        }
+
+        // Edit truck function (for demonstration)
+        function editTruck(truckData) {
+            isEditMode = true;
+            currentTruckId = truckData.id;
+
+            document.getElementById('form-title').textContent = 'Modifier le camion';
+            document.getElementById('submit-text').textContent = 'Mettre à jour';
+
+            // Populate form fields
+            document.getElementById('matricule').value = truckData.matricule || '';
+            document.getElementById('marque').value = truckData.marque || '';
+            document.getElementById('modele').value = truckData.modele || '';
+            document.getElementById('annee').value = truckData.annee || '';
+            document.getElementById('capacite_kg').value = truckData.capacite_kg || '';
+            document.getElementById('statut').value = truckData.statut || 'disponible';
+
+            if (truckData.est_interne) {
+                document.getElementById('est_interne_oui').checked = true;
+                document.getElementById('societe_proprietaire').disabled = true;
+            } else {
+                document.getElementById('est_interne_non').checked = true;
+                document.getElementById('societe_proprietaire').disabled = false;
+                document.getElementById('societe_proprietaire').value = truckData.societe_proprietaire || '';
+            }
+        }
+
+        // Demo function to test edit mode
+        function demoEditMode() {
+            editTruck({
+                id: 1,
+                matricule: '1234 TAA 01',
+                marque: 'Mercedes-Benz',
+                modele: 'Actros 1845',
+                annee: 2023,
+                capacite_kg: 12000,
+                statut: 'disponible',
+                est_interne: false,
+                societe_proprietaire: 'Transport Express SARL'
+            });
+        }
+
+        // Add demo button for testing
+        console.log('To test edit mode, run: demoEditMode()');
+    </script>
+</body>
+</html>
