@@ -16,7 +16,7 @@
             </button>
         </div>
 
-        <form id="trajetForm" method="POST" action="{{ route('trajets.store') }}">
+        <form id="trajetForm"novalidate>
             @csrf
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 

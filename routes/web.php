@@ -29,6 +29,9 @@ Route::resources([
     'marchandises'  => MarchandiseController::class,
 ]);
 
+
+Route::post('/clients/store-ajax', [ClientController::class, 'ajaxStore'])->name('clients.store.ajax');
+Route::post('/trajets/store-ajax', [TrajetController::class, 'ajaxStore'])->name('trajets.store.ajax');
 // Paramètres utilisateurs (authentifié uniquement)
 Route::middleware(['auth'])->group(function () {
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('settings.profile.edit');

@@ -65,6 +65,27 @@ class TrajetController extends Controller
             return back()->withInput()->withErrors(['error' => 'Erreur lors de l’ajout du trajet : ' . $e->getMessage()]);
         }
     }
+ public function ajaxStore(Request $request)
+    {
+        $validated = $request->validate([
+            'itineraire_id' => 'required|exists:itineraires,id',
+            'date_depart' => 'required|date',
+        ]);
+
+        $trajet = Trajet::create($validated);
+
+        $trajet->load('itineraire');
+
+        return response()->json([
+            'success' => true,
+            'trajet' => [
+                'id' => $trajet->id,
+                'lieu_depart' => $trajet->itineraire->lieu_depart,
+                'lieu_arrivee' => $trajet->itineraire->lieu_arrivee,
+                'date_depart' => Carbon::parse($trajet->date_depart)->format('d/m/Y'),
+            ]
+        ]);
+    }
 
     public function edit(Trajet $trajet)
     {

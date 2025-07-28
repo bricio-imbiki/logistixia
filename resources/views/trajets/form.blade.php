@@ -1,3 +1,4 @@
+<!-- resources/views/trajets/form.blade.php -->
 <x-layouts.app>
     <div class="max-w-3xl mx-auto p-6 bg-white rounded-xl shadow-md">
 

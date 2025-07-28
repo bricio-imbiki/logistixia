@@ -35,7 +35,7 @@ class ClientController extends Controller
             });
         }
 
-        $clients = $query->orderBy('raison_sociale')->paginate(10)->withQueryString();
+        $clients = $query->orderBy('raison_sociale')->paginate(3)->withQueryString();
 
         return view('clients.index', compact('clients'));
     }
@@ -58,6 +58,17 @@ class ClientController extends Controller
             return back()->withInput()->withErrors(['error' => 'Erreur lors de l’ajout : ' . $e->getMessage()]);
         }
     }
+public function ajaxStore(Request $request)
+{
+    $validated = $this->validateClient($request);
+
+    $client = Client::create($validated);
+
+    return response()->json([
+        'success' => true,
+        'client' => $client
+    ]);
+}
 
     // Formulaire d’édition
     public function edit(Client $client)

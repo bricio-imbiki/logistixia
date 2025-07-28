@@ -1,3 +1,4 @@
+<!-- resources/views/modals/client-create.blade.php -->
 <div id="clientModal"
      class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 opacity-0 invisible transition-opacity duration-300 ease-in-out"
      aria-modal="true" role="dialog" aria-labelledby="clientModalTitle">

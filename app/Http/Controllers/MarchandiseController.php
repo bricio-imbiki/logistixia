@@ -2,9 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Camion;
+use App\Models\Chauffeur;
 use App\Models\Marchandise;
 use App\Models\Trajet;
 use App\Models\Client;
+use App\Models\Itineraire;
+use App\Models\Remorque;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Exception;
@@ -44,6 +48,10 @@ class MarchandiseController extends Controller
         'marchandise' => null, // Add this to avoid undefined variable
         'trajets' => Trajet::all(),
         'clients' => Client::all(),
+         'camions' => Camion::all(),
+        'remorques' => Remorque::all(),
+        'chauffeurs' => Chauffeur::all(),
+        'itineraires' => Itineraire::all(),
     ]);
 }
 

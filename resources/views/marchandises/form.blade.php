@@ -1,3 +1,4 @@
+<!-- resources/views/marchandise/form.blade.php -->
 <x-layouts.app>
     <div class="max-w-3xl mx-auto p-6 bg-white rounded-xl shadow-md">
 
@@ -229,14 +230,14 @@
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Enregistrement...';
 
-            fetch('/clients', {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': formData.get('_token'),
-                    'Accept': 'application/json'
-                },
-                body: formData
-            })
+        fetch('{{ route('clients.store.ajax') }}', {
+    method: 'POST',
+    headers: {
+        'X-CSRF-TOKEN': formData.get('_token'),
+        'Accept': 'application/json'
+    },
+    body: formData
+})
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Erreur réseau');
@@ -280,14 +281,15 @@
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Enregistrement...';
 
-            fetch('/trajets', {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': formData.get('_token'),
-                    'Accept': 'application/json'
-                },
-                body: formData
-            })
+        fetch('{{ route('trajets.store.ajax') }}', {
+    method: 'POST',
+    headers: {
+        'X-CSRF-TOKEN': formData.get('_token'),
+        'Accept': 'application/json'
+    },
+    body: formData
+})
+
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Erreur réseau');
