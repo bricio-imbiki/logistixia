@@ -16,7 +16,7 @@
             </h2>
 
             <a href="{{ route('marchandises.create') }}"
-               class=" no-underline inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg shadow transition">
+                class=" no-underline inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg shadow transition">
                 <x-heroicon-o-plus class="w-5 h-5" />
                 Ajouter
             </a>
@@ -25,8 +25,8 @@
         <!-- Barre de recherche -->
         <form method="GET" action="{{ route('marchandises.index') }}" class="mb-4">
             <input type="text" name="search" value="{{ request('search') }}"
-                   placeholder="🔍 Rechercher par description, lieu, etc."
-                   class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring focus:ring-blue-200 focus:outline-none">
+                placeholder="🔍 Rechercher par description, lieu, etc."
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring focus:ring-blue-200 focus:outline-none">
         </form>
 
         <!-- Tableau -->
@@ -36,6 +36,7 @@
                     <tr class="bg-gray-100 text-gray-600 uppercase text-left">
                         <th class="px-4 py-2">Description</th>
                         <th class="px-4 py-2">Client</th>
+                        <th class="px-4 py-2">Trajet</th>
                         <th class="px-4 py-2">Poids (kg)</th>
                         <th class="px-4 py-2">Volume (m³)</th>
                         <th class="px-4 py-2">Valeur estimée</th>
@@ -49,16 +50,31 @@
                         <tr class="border-b hover:bg-gray-50 text-center">
                             <td class="px-4 py-2 text-left">{{ Str::limit($marchandise->description ?? '-', 40) }}</td>
                             <td class="px-4 py-2 text-left">{{ $marchandise->client->raison_sociale ?? '-' }}</td>
+                            <td class="px-4 py-2 text-left">
+                                @if ($marchandise->trajet && $marchandise->trajet->itineraire)
+                                    {{ $marchandise->trajet->itineraire->lieu_depart }} →
+                                    {{ $marchandise->trajet->itineraire->lieu_arrivee }}
+                                    ({{ \Carbon\Carbon::parse($marchandise->trajet->date_depart)->format('d/m/Y') }})
+                                @else
+                                    -
+                                @endif
+                            </td>
+
                             <td class="px-4 py-2">{{ $marchandise->poids_kg ?? '-' }}</td>
                             <td class="px-4 py-2">{{ $marchandise->volume_m3 ?? '-' }}</td>
-                            <td class="px-4 py-2">{{ number_format($marchandise->valeur_estimee, 0, ',', ' ') ?? '-' }} Ar</td>
+                            <td class="px-4 py-2">{{ number_format($marchandise->valeur_estimee, 0, ',', ' ') ?? '-' }}
+                                Ar</td>
                             <td class="px-4 py-2 text-left">{{ $marchandise->lieu_livraison ?? '-' }}</td>
                             <td class="px-4 py-2">
                                 <span @class([
-                                    'bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-semibold' => $marchandise->statut === 'chargee',
-                                    'bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-semibold' => $marchandise->statut === 'en_transit',
-                                    'bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-semibold' => $marchandise->statut === 'livree',
-                                    'bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-semibold' => $marchandise->statut === 'retour',
+                                    'bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-semibold' =>
+                                        $marchandise->statut === 'chargee',
+                                    'bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-semibold' =>
+                                        $marchandise->statut === 'en_transit',
+                                    'bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-semibold' =>
+                                        $marchandise->statut === 'livree',
+                                    'bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-semibold' =>
+                                        $marchandise->statut === 'retour',
                                 ])>
                                     {{ ucfirst(str_replace('_', ' ', $marchandise->statut)) }}
                                 </span>
@@ -66,13 +82,14 @@
                             <td class="px-4 py-2">
                                 <div class="flex items-center justify-center gap-2">
                                     <a href="{{ route('marchandises.edit', $marchandise->id) }}"
-                                       class="text-blue-600 hover:text-blue-800 transition" title="Modifier">
+                                        class="text-blue-600 hover:text-blue-800 transition" title="Modifier">
                                         <x-heroicon-o-pencil class="w-5 h-5" />
                                     </a>
                                     <form action="{{ route('marchandises.destroy', $marchandise->id) }}" method="POST"
-                                          onsubmit="return confirm('Supprimer cette marchandise ?')">
+                                        onsubmit="return confirm('Supprimer cette marchandise ?')">
                                         @csrf @method('DELETE')
-                                        <button type="submit" class="text-red-600 hover:text-red-800 transition" title="Supprimer">
+                                        <button type="submit" class="text-red-600 hover:text-red-800 transition"
+                                            title="Supprimer">
                                             <x-heroicon-o-trash class="w-5 h-5" />
                                         </button>
                                     </form>

@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\CamionController;
+use App\Http\Controllers\CarburantController;
 use App\Http\Controllers\RemorqueController;
 use App\Http\Controllers\ChauffeurController;
 use App\Http\Controllers\ItineraireController;
@@ -27,6 +28,7 @@ Route::resources([
     'itineraires'   => ItineraireController::class,
     'trajets'       => TrajetController::class,
     'marchandises'  => MarchandiseController::class,
+    'carburants'=> CarburantController::class,
 ]);
 
 

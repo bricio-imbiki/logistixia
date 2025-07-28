@@ -36,66 +36,65 @@
         </form>
 
         <!-- Tableau -->
-        <div class="overflow-x-auto">
+      <div class="overflow-x-auto">
             <table class="w-full table-auto border-collapse text-sm text-gray-700">
-                <thead>
-                    <tr class="bg-gray-100 text-gray-600 uppercase text-left">
-                        <th class="px-4 py-2">Photo</th>
-                        <th class="px-4 py-2">Nom</th>
-                        <th class="px-4 py-2">Téléphone</th>
-                        <th class="px-4 py-2">Permis</th>
-                        <th class="px-4 py-2">Statut</th>
-                        <th class="px-4 py-2 text-center">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($chauffeurs as $chauffeur)
-                     <tr class="border-b hover:bg-gray-50 text-center">
-                            <td class="px-4 py-2">
-                                @if ($chauffeur->photo_url)
-                                    <img src="{{ Storage::url($chauffeur->photo_url) }}" class="h-8 w-8 object-cover rounded-full shadow">
-                                @else
-                                    <span class="text-xs text-gray-400 italic">Aucune</span>
-                                @endif
-                            </td>
-                            <td class="px-4 py-2 font-medium">
-                                {{ $chauffeur->nom }} {{ $chauffeur->prenom }}
-                            </td>
-                            <td class="px-4 py-2">{{ $chauffeur->telephone ?? '-' }}</td>
-                            <td class="px-4 py-2">
-                                {{ $chauffeur->permis_num }}
-                                <span class="text-xs text-gray-500">({{ $chauffeur->permis_categorie }})</span>
-                            </td>
-                            <td class="px-4 py-2">
-                                <span @class([
-                                    'bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-semibold' => $chauffeur->statut === 'titulaire',
-                                    'bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-semibold' => $chauffeur->statut === 'remplacant',
-                                ])>
-                                    {{ ucfirst($chauffeur->statut) }}
-                                </span>
-                            </td>
-                            <td class="px-4 py-2">
-                                <div class="flex items-center justify-center gap-2">
-                                    <a href="{{ route('chauffeurs.edit', $chauffeur->id) }}"
-                                       class="text-blue-600 hover:text-blue-800 transition" title="Modifier">
-                                        <x-heroicon-o-pencil class="w-5 h-5" />
-                                    </a>
-                                    <form action="{{ route('chauffeurs.destroy', $chauffeur->id) }}" method="POST"
-                                          onsubmit="return confirm('Supprimer ce chauffeur ?')">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="text-red-600 hover:text-red-800 transition" title="Supprimer">
-                                            <x-heroicon-o-trash class="w-5 h-5" />
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6" class="text-center py-6 text-gray-500">Aucun chauffeur trouvé.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
+               <thead>
+    <tr class="bg-gray-100 text-gray-600 uppercase">
+        <th class="px-4 py-2 text-center">Photo</th>
+        <th class="px-4 py-2 text-center">Nom</th>
+        <th class="px-4 py-2 text-center">Téléphone</th>
+        <th class="px-4 py-2 text-center">Permis</th>
+        <th class="px-4 py-2 text-center">Statut</th>
+        <th class="px-4 py-2 text-center">Actions</th>
+    </tr>
+</thead>
+<tbody>
+    @forelse ($chauffeurs as $chauffeur)
+    <tr class="border-b hover:bg-gray-50 text-center">
+        <td class="px-4 py-2">
+            @if ($chauffeur->photo_url)
+                <img src="{{ Storage::url($chauffeur->photo_url) }}" class="h-8 w-8 object-cover rounded-full mx-auto shadow">
+            @else
+                <span class="text-xs text-gray-400 italic">Aucune</span>
+            @endif
+        </td>
+        <td class="px-4 py-2 font-medium">{{ $chauffeur->nom }} {{ $chauffeur->prenom }}</td>
+        <td class="px-4 py-2">{{ $chauffeur->telephone ?? '-' }}</td>
+        <td class="px-4 py-2">
+            {{ $chauffeur->permis_num }}
+            <span class="text-xs text-gray-500 block">({{ $chauffeur->permis_categorie }})</span>
+        </td>
+        <td class="px-4 py-2">
+            <span @class([
+                'bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-semibold' => $chauffeur->statut === 'titulaire',
+                'bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-semibold' => $chauffeur->statut === 'remplacant',
+            ])>
+                {{ ucfirst($chauffeur->statut) }}
+            </span>
+        </td>
+        <td class="px-4 py-2">
+            <div class="flex items-center justify-center gap-2">
+                <a href="{{ route('chauffeurs.edit', $chauffeur->id) }}"
+                   class="text-blue-600 hover:text-blue-800 transition" title="Modifier">
+                    <x-heroicon-o-pencil class="w-5 h-5" />
+                </a>
+                <form action="{{ route('chauffeurs.destroy', $chauffeur->id) }}" method="POST"
+                      onsubmit="return confirm('Supprimer ce chauffeur ?')">
+                    @csrf @method('DELETE')
+                    <button type="submit" class="text-red-600 hover:text-red-800 transition" title="Supprimer">
+                        <x-heroicon-o-trash class="w-5 h-5" />
+                    </button>
+                </form>
+            </div>
+        </td>
+    </tr>
+    @empty
+    <tr>
+        <td colspan="6" class="text-center py-6 text-gray-500">Aucun chauffeur trouvé.</td>
+    </tr>
+    @endforelse
+</tbody>
+
             </table>
         </div>
 

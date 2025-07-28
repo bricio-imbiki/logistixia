@@ -39,4 +39,8 @@ class Camion extends Model
     {
         return $this->hasMany(Depense::class);
     }
+    public function carburants()
+    {
+        return $this->hasMany(Carburant::class);
+    }
 }
