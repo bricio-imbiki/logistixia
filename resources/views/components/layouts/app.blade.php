@@ -27,7 +27,17 @@
 ="no-referrer" /> --}}
 <!-- Custom CSS -->
 {{-- <link rel="stylesheet" href="{{ asset('css/app.css') }}"> --}}
-
+ <!-- CSS Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        #map {
+            height: 600px;
+            width: 100%;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+    </style>
     <script>
         window.setAppearance = function(appearance) {
             let setDark = () => document.documentElement.classList.add('dark')

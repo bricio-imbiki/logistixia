@@ -55,10 +55,10 @@
                 Plannings
             </x-layouts.sidebar-link> --}}
 
-            {{-- <x-layouts.sidebar-link href="{{ route('suivis.index') }}" icon="fas-map"
-                :active="request()->routeIs('suivis*')">
+            <x-layouts.sidebar-link href="{{ route('suivisGps.index') }}" icon="fas-map"
+                :active="request()->routeIs('suivisGps.index')">
                 Suivi GPS
-            </x-layouts.sidebar-link> --}}
+            </x-layouts.sidebar-link>
         </nav>
 
 

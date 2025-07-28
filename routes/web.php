@@ -10,7 +10,7 @@ use App\Http\Controllers\ChauffeurController;
 use App\Http\Controllers\ItineraireController;
 use App\Http\Controllers\TrajetController;
 use App\Http\Controllers\MarchandiseController;
-
+use App\Http\Controllers\SuiviGpsController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\AppearanceController;
@@ -29,6 +29,10 @@ Route::resources([
     'marchandises'  => MarchandiseController::class,
 ]);
 
+
+use App\Http\Controllers\SuivisGpsController;
+
+Route::get('/suivis-gps', [SuiviGpsController::class, 'index'])->name('suivisGps.index');
 
 Route::post('/clients/store-ajax', [ClientController::class, 'ajaxStore'])->name('clients.store.ajax');
 Route::post('/trajets/store-ajax', [TrajetController::class, 'ajaxStore'])->name('trajets.store.ajax');
