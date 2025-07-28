@@ -31,6 +31,8 @@ Route::resources([
 
 
 use App\Http\Controllers\SuivisGpsController;
+// routes/web.php ou routes/api.php si tu veux utiliser axios
+Route::get('/api/suivis-gps', [SuiviGpsController::class, 'fetchLatest'])->name('fetchLatest');;
 
 Route::get('/suivis-gps', [SuiviGpsController::class, 'index'])->name('suivisGps.index');
 

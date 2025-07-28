@@ -8,7 +8,6 @@ class SuivisGps extends Model
 {
     use HasFactory;
 
-
     protected $fillable = [
         'camion_id', 'latitude', 'longitude',
         'vitesse_kmh', 'niveau_carburant', 'event_time'

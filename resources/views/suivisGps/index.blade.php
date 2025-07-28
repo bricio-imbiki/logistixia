@@ -1,33 +1,89 @@
 <x-layouts.app>
-    <div class="max-w-4xl mx-auto py-10 px-6 bg-white shadow rounded-lg">
-        <h1 class="text-2xl font-bold mb-6">Suivi GPS des camions</h1>
-
-        <div class="max-w-4xl mx-auto py-6">
-            <div class="bg-white shadow rounded-lg p-6">
-                <h2 class="text-xl font-semibold mb-4">Carte des Suivis GPS</h2>
-                <p class="text-gray-600 mb-4">Visualisez la position actuelle de vos camions sur la carte.</p>
-
-                <!-- Carte -->
-                <div id="map" class="w-full h-96 rounded-lg"></div>
-            </div>
+    <!-- Flash message -->
+    @if (session('success'))
+        <div class="mt-4 px-4 py-2 bg-green-100 text-green-800 rounded shadow max-w-7xl mx-auto">
+            {{ session('success') }}
         </div>
+    @endif
+
+    <div class="max-w-7xl mx-auto p-6 bg-white rounded-xl shadow-md">
+
+        <!-- Titre + Bouton Rafraîchir -->
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-3">
+                <x-heroicon-o-map class="w-7 h-7 text-blue-600" />
+                <span>Suivi GPS des camions</span>
+            </h2>
+
+            <button
+                onclick="fetchAndUpdateMarkers()"
+                class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded-lg shadow transition"
+                title="Rafraîchir la carte">
+                <x-heroicon-o-arrow-path class="w-6 h-6" />
+                Rafraîchir
+            </button>
+        </div>
+
+        <!-- Barre de recherche -->
+        <form method="GET" action="{{ route('suivisGps.index') }}" class="mb-4 max-w-md">
+            <input type="text" name="search" value="{{ request('search') }}"
+                   placeholder="🔍 Rechercher un camion par immatriculation..."
+                   class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring focus:ring-blue-300 focus:outline-none" />
+        </form>
+
+        <!-- Carte -->
+        <div id="map" class="w-full h-[550px] rounded-xl shadow-inner border border-gray-200"></div>
     </div>
+
     <script>
-        const map = L.map('map').setView([-18.8792, 47.5079], 6); // Antananarivo par défaut
+        // Centre la carte sur Toamasina
+        const map = L.map('map').setView([-18.1492, 49.4023], 13);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" class="text-blue-500">OpenStreetMap</a> contributors'
         }).addTo(map);
 
+        // Stocke les marqueurs par camion pour mise à jour facile
+        const markers = {};
+
+        // Charge les données initiales depuis Blade
         const suivis = @json($suivis);
 
-        suivis.forEach(suivi => {
-            const marker = L.marker([suivi.latitude, suivi.longitude]).addTo(map);
-            marker.bindPopup(
-                `<b>Camion:</b> ${suivi.camion?.immatriculation || 'Inconnu'}<br>
-                 <b>Vitesse:</b> ${suivi.vitesse_kmh} km/h<br>
-                 `
-            );
-        });
+        function createOrUpdateMarker(suivi) {
+            const key = suivi.camion?.id || suivi.id;
+            const latLng = [suivi.latitude, suivi.longitude];
+
+            if (markers[key]) {
+                markers[key].setLatLng(latLng);
+            } else {
+                const marker = L.marker(latLng).addTo(map);
+                marker.bindPopup(`
+                    <div class="text-sm">
+                        <strong>Camion:</strong> ${suivi.camion_id|| 'Inconnu'}<br>
+                        <strong>Vitesse:</strong> ${suivi.vitesse_kmh} km/h<br>
+                        <strong>Heure:</strong> ${new Date(suivi.event_time).toLocaleString()}
+                    </div>
+                `);
+                markers[key] = marker;
+            }
+        }
+
+        // Initialisation des marqueurs
+        suivis.forEach(createOrUpdateMarker);
+
+        // Fonction pour rafraîchir la carte (ex: via appel API)
+        async function fetchAndUpdateMarkers() {
+            try {
+                const response = await fetch('{{ route("fetchLatest") }}');
+                const data = await response.json();
+
+                data.forEach(createOrUpdateMarker);
+            } catch (error) {
+                console.error("Erreur lors du chargement des données GPS:", error);
+            }
+        }
+
+        // Optionnel : rafraîchissement automatique toutes les 15s
+        setInterval(fetchAndUpdateMarkers, 10000);
     </script>
 </x-layouts.app>

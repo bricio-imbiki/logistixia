@@ -10,6 +10,8 @@ class SuiviGpsController extends Controller
 {
     public function index(Request $request)
     {
+
+
         // On récupère les derniers suivis GPS
         $suivis = SuivisGps::with('camion')
             ->orderBy('event_time', 'desc')
@@ -20,4 +22,15 @@ class SuiviGpsController extends Controller
             'suivis' => $suivis
         ]);
     }
+    public function fetchLatest()
+{
+    $suivis = SuivisGps::with('camion')
+
+        ->orderBy('event_time', 'desc')
+        ->limit(50)
+        ->get();
+
+    return response()->json($suivis);
+}
+
 }

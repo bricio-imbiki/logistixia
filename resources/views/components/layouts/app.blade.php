@@ -20,16 +20,19 @@
   <!-- Bootstrap CDN -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" />
-{{-- <!-- Bootstrap CDN -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3
-
-/dist/css/bootstrap.min.css" integrity="sha512-..." crossorigin="anonymous" referrerpolicy
-="no-referrer" /> --}}
-<!-- Custom CSS -->
-{{-- <link rel="stylesheet" href="{{ asset('css/app.css') }}"> --}}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
  <!-- CSS Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<!-- Leaflet Awesome Markers -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.awesome-markers/2.0.5/leaflet.awesome-markers.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.awesome-markers/2.0.5/leaflet.awesome-markers.js"></script>
+
     <style>
         #map {
             height: 600px;
