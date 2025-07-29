@@ -1,4 +1,5 @@
- <x-layouts.app>
+
+<x-layouts.app>
     <!-- Dependencies -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -7,6 +8,11 @@
     <script src="https://cdn.jsdelivr.net/npm/tippy.js@6"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.awesome-markers/2.0.5/leaflet.awesome-markers.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.awesome-markers/2.0.5/leaflet.awesome-markers.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
     <div class="p-6 bg-gray-100 dark:bg-gray-900 min-h-screen">
         <!-- Header -->
@@ -92,6 +98,7 @@
                 </div>
             </div>
         </div>
+
         <!-- Charts, Map, and Activity -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 flex-1">
             <!-- Revenue Chart -->
@@ -132,18 +139,13 @@
                     @forelse ($recent_activities as $activity)
                         <div class="flex items-start gap-3 border-b border-gray-200 dark:border-gray-700 pb-3 animate-slide-in" style="animation-delay: {{ $loop->index * 0.1 }}s" role="listitem" tabindex="0">
                             <div class="bg-indigo-50 dark:bg-indigo-900/50 p-2 rounded-full">
-                                <x-heroicon-o-clipboard-document-list class="h-5 w-5 text-indigo-500 dark:text-indigo-300" aria-hidden="true" />
+                                <i class="fas fa-clipboard-list h-5 w-5 text-indigo-500 dark:text-indigo-300"></i>
                             </div>
                             <div class="flex-1">
                                 <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $activity->itineraire?->lieu_depart ?? '-' }} → {{ $activity->itineraire?->lieu_arrivee ?? '-' }}</p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ $activity->chauffeur?->nom ?? '-' }} | {{ $activity->camion?-> accreditation ?? '-' }} | {{ \Carbon\Carbon::parse($activity->date_depart)->format('d/m/Y') }}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ $activity->chauffeur?->nom ?? '-' }} | {{ $activity->camion?->accreditation ?? '-' }} | {{ \Carbon\Carbon::parse($activity->date_depart)->format('d/m/Y') }}</p>
                                 <p class="text-xs mt-1">
-                                    Statut: <span @class([
-                                        'text-green-600 dark:text-green-400' => $activity->marchandises->first()?->statut === 'livree',
-                                        'text-yellow-600 dark:text-yellow-400' => $activity->marchandises->first()?->statut === 'en_transit',
-                                        'text-red-600 dark:text-red-400' => $activity->marchandises->first()?->statut === 'retour',
-                                        'text-indigo-600 dark:text-indigo-400' => $activity->marchandises->first()?->statut === 'chargee',
-                                    ])>{{ ucfirst($activity->marchandises->first()?->statut ?? '-') }}</span>
+                                    Statut: <span class="@if($activity->marchandises->first()?->statut === 'livree') text-green-600 dark:text-green-400 @elseif($activity->marchandises->first()?->statut === 'en_transit') text-yellow-600 dark:text-yellow-400 @elseif($activity->marchandises->first()?->statut === 'retour') text-red-600 dark:text-red-400 @else text-indigo-600 dark:text-indigo-400 @endif">{{ ucfirst($activity->marchandises->first()?->statut ?? '-') }}</span>
                                 </p>
                             </div>
                         </div>
@@ -174,9 +176,19 @@
         canvas { max-height: 100% !important; width: 100% !important; }
         [data-tippy-root] { font-size: 0.875rem; border-radius: 0.375rem; }
         .dark [data-tippy-root] { background-color: #1F2937; }
+        #truckMap { border-radius: 8px; }
     </style>
 
     <script>
+        // Status class mapping
+        const statusClasses = {
+            'livree': 'text-green-600 dark:text-green-400',
+            'en_transit': 'text-yellow-600 dark:text-yellow-400',
+            'retour': 'text-red-600 dark:text-red-400',
+            'chargee': 'text-indigo-600 dark:text-indigo-400',
+            'default': 'text-indigo-600 dark:text-indigo-400'
+        };
+
         // Initialize Flatpickr
         flatpickr('#dateRangePicker', {
             mode: 'range',
@@ -196,15 +208,16 @@
             document.getElementById('dateRangePicker')._flatpickr.open();
         });
 
-        // Fetch Data
-        async function fetchData(startDate, endDate) {
+        // Fetch Dashboard Data
+        async function fetchData(startDate, endDate, filter = 'all') {
             document.getElementById('loadingSpinner').classList.remove('hidden');
             try {
-                const response = await fetch(`{{ route('dashboard.index') }}?start_date=${startDate}&end_date=${endDate}`, {
+                const response = await fetch(`{{ route('dashboard.index') }}?start_date=${startDate}&end_date=${endDate}&filter=${filter}`, {
                     headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 });
                 const data = await response.json();
                 updateDashboard(data);
+                updateMap(data.trucks);
             } catch (error) {
                 Toastify({ text: 'Erreur lors du chargement', duration: 3000, backgroundColor: '#EF4444' }).showToast();
             } finally {
@@ -232,20 +245,22 @@
             statusChart.update();
 
             const activityFeed = document.getElementById('activityFeed');
-            activityFeed.innerHTML = data.recent_activities.map((a, i) => `
-                <div class="flex items-start gap-3 border-b border-gray-200 dark:border-gray-700 pb-3 animate-slide-in" style="animation-delay: ${i * 0.1}s" role="listitem" tabindex="0">
-                    <div class="bg-indigo-50 dark:bg-indigo-900/50 p-2 rounded-full">
-                        <svg class="h-5 w-5 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
+            activityFeed.innerHTML = data.recent_activities.map((a, i) => {
+                const status = a.marchandises[0]?.statut ?? 'default';
+                const className = statusClasses[status] || statusClasses['default'];
+                return `
+                    <div class="flex items-start gap-3 border-b border-gray-200 dark:border-gray-700 pb-3 animate-slide-in" style="animation-delay: ${i * 0.1}s" role="listitem" tabindex="0">
+                        <div class="bg-indigo-50 dark:bg-indigo-900/50 p-2 rounded-full">
+                            <i class="fas fa-clipboard-list h-5 w-5 text-indigo-500 dark:text-indigo-300"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-900 dark:text-white">${a.itineraire?.lieu_depart ?? '-'} → ${a.itineraire?.lieu_arrivee ?? '-'}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">${a.chauffeur?.nom ?? '-'} | ${a.camion?.accreditation ?? '-'} | ${new Date(a.date_depart).toLocaleDateString('fr-FR')}</p>
+                            <p class="text-xs">Statut: <span class="${className}">${a.marchandises[0]?.statut ?? '-'}</span></p>
+                        </div>
                     </div>
-                    <div class="flex-1">
-                        <p class="text-sm font-medium text-gray-900 dark:text-white">${a.itineraire?.lieu_depart ?? '-'} → ${a.itineraire?.lieu_arrivee ?? '-'}</p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">${a.chauffeur?.nom ?? '-'} | ${a.camion?.immatriculation ?? '-'} | ${new Date(a.date_depart).toLocaleDateString('fr-FR')}</p>
-                        <p class="text-xs">Statut: <span class="${a.marchandises[0]?.statut === 'livree' ? 'text-green-600' : a.marchandises[0]?.statut === 'en_transit' ? 'text-yellow-600' : a.marchandises[0]?.statut === 'retour' ? 'text-red-600' : 'text-indigo-600'}">${a.marchandises[0]?.statut ?? '-'}</span></p>
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         // Charts Initialization
@@ -290,11 +305,46 @@
         });
 
         // Map Initialization
-        const map = L.map('truckMap').setView([51.505, -0.09], 13);
+        const map = L.map('truckMap').setView([-18.1492, 49.40234], 12); // Center on Toamasina, Madagascar
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
-        L.marker([51.5, -0.09]).addTo(map).bindPopup('Camion #1').openPopup();
+
+        let truckMarkers = [];
+
+        function updateMap(trucks) {
+            // Clear existing markers
+            truckMarkers.forEach(marker => map.removeLayer(marker));
+            truckMarkers = [];
+
+            // Add new markers for trucks
+            trucks.forEach(truck => {
+                const marker = L.AwesomeMarkers.icon({
+                    icon: 'truck',
+                    prefix: 'fa',
+                    markerColor: truck.status === 'en_transit' ? 'blue' : truck.status === 'livree' ? 'green' : 'red'
+                });
+
+                const truckMarker = L.marker([truck.latitude, truck.longitude], { icon: marker })
+                    .addTo(map)
+                    .bindPopup(`
+                        <b>Camion: ${truck.accreditation}</b><br>
+                        Chauffeur: ${truck.chauffeur?.nom ?? '-'}<br>
+                        Statut: ${truck.status}<br>
+                        Dernière mise à jour: ${new Date(truck.last_updated).toLocaleString('fr-FR')}
+                    `);
+                truckMarkers.push(truckMarker);
+            });
+
+            // Adjust map bounds to fit all markers if there are any
+            if (truckMarkers.length > 0) {
+                const group = new L.featureGroup(truckMarkers);
+                map.fitBounds(group.getBounds(), { padding: [50, 50] });
+            }
+        }
+
+        // Fetch initial truck data
+        fetchData('{{ $startDate }}', '{{ $endDate }}');
 
         // Tooltips
         tippy('[data-tippy-content]', { theme: 'light', animation: 'scale' });
@@ -307,13 +357,8 @@
 
         // Load More
         document.getElementById('loadMore').addEventListener('click', () => {
-            // Add pagination logic here
             Toastify({ text: 'Chargement des activités supplémentaires', duration: 2000, backgroundColor: '#4F46E5' }).showToast();
+            // Add pagination logic here
         });
-
-        // Show Details
-        function showDetails(type) {
-            Toastify({ text: `Afficher les détails pour ${type}`, duration: 2000, backgroundColor: '#4F46E5' }).showToast();
-        }
     </script>
 </x-layouts.app>
