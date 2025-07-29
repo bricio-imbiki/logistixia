@@ -10,8 +10,6 @@ class Carburant extends Model
 {
     use HasFactory;
 
-    protected $table = 'carburants';
-
     // Colonnes en assignement massif
     protected $fillable = [
        'camion_id',

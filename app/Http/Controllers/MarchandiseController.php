@@ -28,20 +28,34 @@ class MarchandiseController extends Controller
             'statut' => ['required', 'in:chargee,en_transit,livree,retour'],
         ]);
     }
+public function index(Request $request)
+{
+    $query = Marchandise::query();
 
-    public function index(Request $request)
-    {
-        $query = Marchandise::with(['trajet', 'client']);
-
-        if ($search = $request->input('search')) {
-            $query->where('description', 'like', "%{$search}%");
-        }
-
-        $marchandises = $query->orderByDesc('created_at')->paginate(10)->withQueryString();
-
-        return view('marchandises.index', compact('marchandises'));
+    if ($request->filled('search')) {
+        $query->where('description', 'like', '%' . $request->search . '%')
+              ->orWhere('lieu_livraison', 'like', '%' . $request->search . '%');
     }
 
+    if ($request->filled('client_id')) {
+        $query->where('client_id', $request->client_id);
+    }
+
+    if ($request->filled('statut')) {
+        $query->where('statut', $request->statut);
+    }
+
+    $marchandises = $query->with(['client', 'trajet'])->paginate(10);
+    $clients = Client::with('marchandises.trajet')->get();
+    $stats = [
+        'chargee' => Marchandise::where('statut', 'chargee')->count(),
+        'en_transit' => Marchandise::where('statut', 'en_transit')->count(),
+        'livree' => Marchandise::where('statut', 'livree')->count(),
+        'retour' => Marchandise::where('statut', 'retour')->count(),
+    ];
+
+    return view('marchandises.index', compact('marchandises', 'clients', 'stats'));
+}
     public function create()
 {
     return view('marchandises.form', [

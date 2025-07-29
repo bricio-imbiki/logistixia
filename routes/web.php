@@ -17,7 +17,7 @@ use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\AppearanceController;
 
 // Page d’accueil (tableau de bord)
-Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+Route::get('/', [DashboardController::class, 'index'])->name('dashboard.index');
 
 // Routes CRUD
 Route::resources([
@@ -28,11 +28,9 @@ Route::resources([
     'itineraires'   => ItineraireController::class,
     'trajets'       => TrajetController::class,
     'marchandises'  => MarchandiseController::class,
-    'carburants'=> CarburantController::class,
+    'carburants'    => CarburantController::class,
 ]);
 
-
-use App\Http\Controllers\SuivisGpsController;
 // routes/web.php ou routes/api.php si tu veux utiliser axios
 Route::get('/api/suivis-gps', [SuiviGpsController::class, 'fetchLatest'])->name('fetchLatest');;
 

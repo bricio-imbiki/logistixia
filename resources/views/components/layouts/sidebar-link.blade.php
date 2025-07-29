@@ -15,3 +15,45 @@
             class="transition-opacity duration-300">{{ $slot }}</span>
     </a>
 </li>
+<script>
+    // Update link text visibility based on sidebar state
+    function updateSidebarLinks() {
+        const sidebar = document.getElementById('sidebar');
+        const isOpen = sidebar.classList.contains('w-full') || sidebar.classList.contains('w-64');
+        document.querySelectorAll('.sidebar-link .link-text').forEach(span => {
+            span.style.opacity = isOpen ? '1' : '0';
+            span.style.display = isOpen ? 'inline' : 'none';
+        });
+
+        // Update tooltips based on sidebar state
+        tippy('[data-tippy-content]').forEach(tooltip => {
+            tooltip.setProps({ trigger: isOpen ? 'manual' : 'mouseenter focus' });
+        });
+    }
+
+    // Initialize links and listen for sidebar changes
+    document.addEventListener('DOMContentLoaded', () => {
+        updateSidebarLinks();
+
+        // Observe sidebar class changes
+        const sidebar = document.getElementById('sidebar');
+        const observer = new MutationObserver(updateSidebarLinks);
+        observer.observe(sidebar, { attributes: true, attributeFilter: ['class'] });
+
+        // Keyboard navigation for accessibility
+        document.querySelectorAll('.sidebar-link').forEach(link => {
+            link.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === 'Space') {
+                    e.preventDefault();
+                    link.click();
+                }
+            });
+        });
+    });
+</script>
+
+<style>
+    .sidebar-link .link-text {
+        transition: opacity 0.3s ease, display 0.3s ease;
+    }
+</style>

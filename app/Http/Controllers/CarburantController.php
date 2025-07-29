@@ -16,7 +16,7 @@ class CarburantController extends Controller
         return $request->validate([
             'camion_id' => ['required', 'exists:camions,id'],
             'trajet_id' => ['nullable', 'exists:trajets,id'],
-            'date' => ['required', 'date'],
+            'date_achat' => ['required', 'date'],
             'quantite_litres' => ['required', 'numeric', 'min:0'],
             'prix_total' => ['required', 'numeric', 'min:0'],
             'station' => ['nullable', 'string', 'max:100'],
@@ -32,7 +32,8 @@ class CarburantController extends Controller
             $query->where('station', 'like', "%{$search}%");
         }
 
-        $carburants = $query->orderByDesc('date')->paginate(10)->withQueryString();
+     $carburants = $query->orderByDesc('date_achat')->paginate(10);
+
 
         return view('carburants.index', compact('carburants'));
     }
@@ -46,18 +47,24 @@ class CarburantController extends Controller
         ]);
     }
 
-    public function store(Request $request)
-    {
-        $validated = $this->validateCarburant($request);
+public function store(Request $request)
+{
+    $validated = $this->validateCarburant($request);
 
-        try {
-            Carburant::create($validated);
-            return redirect()->route('carburants.index')->with('success', 'Carburant enregistré avec succès.');
-        } catch (Exception $e) {
-            Log::error('Erreur lors de l’enregistrement du carburant : ' . $e->getMessage());
-            return back()->withInput()->withErrors(['error' => 'Erreur lors de l’enregistrement.']);
-        }
+    // Calcul automatique si pas fourni
+    if (!isset($validated['prix_unitaire']) && $validated['quantite_litres'] > 0) {
+        $validated['prix_unitaire'] = $validated['prix_total'] / $validated['quantite_litres'];
     }
+
+    try {
+        Carburant::create($validated);
+        return redirect()->route('carburants.index')->with('success', 'Carburant enregistré avec succès.');
+    } catch (Exception $e) {
+        Log::error('Erreur lors de l’enregistrement du carburant : ' . $e->getMessage());
+        return back()->withInput()->withErrors(['error' => 'Erreur lors de l’enregistrement.']);
+    }
+}
+
 
     public function edit(Carburant $carburant)
     {

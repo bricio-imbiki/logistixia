@@ -13,31 +13,76 @@
             @endif
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {{-- Camion --}}
+                <x-forms.select
+                    name="camion_id"
+                    label="Camion concerné"
+                    :options="$camions->pluck('matricule', 'id')->toArray()"
+                    :selected="old('camion_id', $carburant->camion_id ?? '')"
+                    required
+                />
 
-                <x-forms.select name="vehicule_id" label="Camion concerné"
-                    :options="$camions->pluck('immatriculation', 'id')->toArray()"
-                    :selected="old('vehicule_id', $carburant->vehicule_id ?? '')"
-                    required />
+                {{-- Trajet (optionnel) --}}
+                <div>
+                    <label for="trajet_id" class="block text-sm font-medium text-gray-700 mb-1">Trajet associé (facultatif)</label>
+                    <select name="trajet_id" id="trajet_id"
+                            class="block w-full border-gray-300 rounded px-3 py-2 shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">-- Aucun --</option>
+                        @foreach($trajets as $trajet)
+                            <option value="{{ $trajet->id }}"
+                                {{ old('trajet_id', $carburant->trajet_id ?? '') == $trajet->id ? 'selected' : '' }}>
+                                {{ $trajet->itineraire->lieu_depart }} → {{ $trajet->itineraire->lieu_arrivee }} ({{ \Carbon\Carbon::parse($trajet->date_depart)->format('d/m/Y') }})
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('trajet_id') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
 
-                <x-forms.select name="trajet_id" label="Trajet associé (facultatif)"
-                    :options="$trajets->pluck('reference', 'id')->toArray()"
-                    :selected="old('trajet_id', $carburant->trajet_id ?? '')" />
+                {{-- Date --}}
+                <x-forms.input
+                    name="date_achat"
+                    label="Date du plein"
+                    type="date"
+                  :value="old('date_achat', $carburant->date_achat ?? now()->toDateString())"
 
-                <x-forms.input name="date" label="Date du plein" type="date"
-                    :value="old('date', $carburant->date ?? now()->toDateString())" required />
+                    required
+                />
 
-                <x-forms.input name="quantite_litres" label="Quantité (en litres)" type="number" step="0.01"
-                    :value="old('quantite_litres', $carburant->quantite_litres ?? '')" required />
+                {{-- Quantité --}}
+                <x-forms.input
+                    name="quantite_litres"
+                    label="Quantité (en litres)"
+                    type="number"
+                    step="0.01"
+                    :value="old('quantite_litres', $carburant->quantite_litres ?? '')"
+                    required
+                />
+<x-forms.input
+    name="prix_unitaire"
+    label="Prix unitaire (Ar/L)"
+    type="number"
+    step="1"
+    :value="old('prix_unitaire', $carburant->prix_unitaire ?? '')"
+    required
+/>
 
-                <x-forms.input name="prix_total" label="Prix total (en Ar)" type="number" step="100"
-                    :value="old('prix_total', $carburant->prix_total ?? '')" required />
+                {{-- Prix total --}}
+                <x-forms.input
+                    name="prix_total"
+                    label="Prix total (en Ar)"
+                    type="number"
+                    step="100"
+                    :value="old('prix_total', $carburant->prix_total ?? '')"
+                    required
+                />
 
-                <x-forms.input name="station" label="Station essence"
-                    :value="old('station', $carburant->station ?? '')" required />
-
-                <x-forms.select name="type" label="Type de carburant"
-                    :options="['gasoil' => 'Gasoil', 'essence' => 'Essence']"
-                    :selected="old('type', $carburant->type ?? 'gasoil')" required />
+                {{-- Station --}}
+                <x-forms.input
+                    name="station"
+                    label="Station essence"
+                    :value="old('station', $carburant->station ?? '')"
+                    required
+                />
             </div>
 
             {{-- Boutons --}}
@@ -47,7 +92,7 @@
                     <i class="fas fa-arrow-left mr-1"></i> Annuler
                 </a>
 
-                <x-button type="submit"
+                   <x-button type="submit"
                           class="px-6 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700 flex items-center gap-2">
                     @if(isset($carburant))
                         <i class="fas fa-pen mr-1"></i> Mettre à jour

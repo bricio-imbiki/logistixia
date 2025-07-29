@@ -1,143 +1,220 @@
-<!-- resources/views/marchandise/form.blade.php -->
 <x-layouts.app>
-    <div class="max-w-3xl mx-auto p-6 bg-white rounded-xl shadow-md">
+    <!-- Toastify pour notifications -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 
+    <div class="max-w-4xl mx-auto p-6 bg-white rounded-xl shadow-md">
         <h1 class="text-2xl font-bold mb-6">
-            {{ isset($marchandise) ? "Modifier la marchandise" : "Ajouter une nouvelle marchandise" }}
+            {{ isset($marchandise) ? "Modifier la marchandise" : "Ajouter des marchandises" }}
         </h1>
 
         <form method="POST"
               action="{{ isset($marchandise) ? route('marchandises.update', $marchandise) : route('marchandises.store') }}"
-              novalidate>
+              novalidate id="marchandiseForm">
             @csrf
             @if(isset($marchandise))
                 @method('PUT')
             @endif
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                <!-- Client -->
-                <div class="md:col-span-2">
-                    <label for="client_id" class="block text-sm font-medium text-gray-700">Client *</label>
-                    <div class="flex gap-2">
-                        <select name="client_id" id="client_id" required
-                                class="mt-1 block w-full rounded border border-gray-300 px-3 py-2">
-                            <option value="">-- Sélectionner un client --</option>
-                            @foreach ($clients as $client)
-                                <option value="{{ $client->id }}"
-                                    @selected(old('client_id', $marchandise?->client_id ?? '') == $client->id)>
-                                    {{ $client->raison_sociale }}
-                                </option>
-                            @endforeach
-                        </select>
-                        <button type="button" onclick="openClientModal()"
-                                class="mt-1 bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 whitespace-nowrap">
-                            + Ajouter Client
-                        </button>
-                    </div>
-                    @error('client_id') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
-                </div>
-
-                <!-- Trajet -->
-                <div class="md:col-span-2">
-                    <label for="trajet_id" class="block text-sm font-medium text-gray-700">Trajet *</label>
-                    <div class="flex gap-2">
-                        <select name="trajet_id" id="trajet_id" required
-                                class="mt-1 block w-full rounded border border-gray-300 px-3 py-2">
-                            <option value="">-- Sélectionner un trajet --</option>
-                            @foreach($trajets as $trajet)
-                                <option value="{{ $trajet->id }}"
-                                        @selected(old('trajet_id', $marchandise?->trajet_id ?? '') == $trajet->id)>
-                                    {{ $trajet->itineraire->lieu_depart }} → {{ $trajet->itineraire->lieu_arrivee }}
-                                    ({{ \Carbon\Carbon::parse($trajet->date_depart)->format('d/m/Y') }})
-                                </option>
-                            @endforeach
-                        </select>
-                        <button type="button" onclick="openTrajetModal()"
-                                class="mt-1 bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700 whitespace-nowrap">
-                            + Ajouter Trajet
-                        </button>
-                    </div>
-                    @error('trajet_id') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
-                </div>
-
-                <!-- Description -->
-                <div class="md:col-span-2">
-                    <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
-                    <textarea name="description" id="description" rows="3"
-                              class="mt-1 block w-full rounded border border-gray-300 px-3 py-2 resize-y">{{ old('description', $marchandise?->description ?? '') }}</textarea>
-                    @error('description') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
-                </div>
-
-                <!-- Poids (kg) -->
-                <div>
-                    <label for="poids_kg" class="block text-sm font-medium text-gray-700">Poids (kg)</label>
-                    <input type="number" step="0.01" name="poids_kg" id="poids_kg"
-                           class="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
-                           value="{{ old('poids_kg', $marchandise?->poids_kg ?? '') }}">
-                    @error('poids_kg') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
-                </div>
-
-                <!-- Volume (m³) -->
-                <div>
-                    <label for="volume_m3" class="block text-sm font-medium text-gray-700">Volume (m³)</label>
-                    <input type="number" step="0.01" name="volume_m3" id="volume_m3"
-                           class="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
-                           value="{{ old('volume_m3', $marchandise?->volume_m3 ?? '') }}">
-                    @error('volume_m3') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
-                </div>
-
-                <!-- Valeur estimée (Ariary) -->
-                <div>
-                    <label for="valeur_estimee" class="block text-sm font-medium text-gray-700">Valeur estimée (Ariary)</label>
-                    <input type="number" step="0.01" name="valeur_estimee" id="valeur_estimee"
-                           class="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
-                           value="{{ old('valeur_estimee', $marchandise?->valeur_estimee ?? '') }}">
-                    @error('valeur_estimee') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
-                </div>
-
-                <!-- Lieu de livraison -->
-                <div>
-                    <label for="lieu_livraison" class="block text-sm font-medium text-gray-700">Lieu de livraison</label>
-                    <input type="text" name="lieu_livraison" id="lieu_livraison"
-                           class="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
-                           value="{{ old('lieu_livraison', $marchandise?->lieu_livraison ?? '') }}">
-                    @error('lieu_livraison') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
-                </div>
-
-                <!-- Statut -->
-                <div>
-                    <label for="statut" class="block text-sm font-medium text-gray-700">Statut</label>
-                    <select name="statut" id="statut"
-                            class="mt-1 block w-full rounded border border-gray-300 px-3 py-2">
-                        <option value="chargee" @selected(old('statut', $marchandise?->statut ?? '') == 'chargee')>Chargée</option>
-                        <option value="en_transit" @selected(old('statut', $marchandise?->statut ?? '') == 'en_transit')>En transit</option>
-                        <option value="livree" @selected(old('statut', $marchandise?->statut ?? '') == 'livree')>Livrée</option>
-                        <option value="retour" @selected(old('statut', $marchandise?->statut ?? '') == 'retour')>Retour</option>
+            <!-- Client -->
+            <div class="mb-6">
+                <label for="client_id" class="block text-sm font-medium text-gray-700">
+                    Client *
+                    <span class="text-gray-500 cursor-help" title="Sélectionnez ou ajoutez un client">ⓘ</span>
+                </label>
+                <div class="flex gap-2">
+                    <select name="client_id" id="client_id" required
+                            class="mt-1 block w-full rounded border border-gray-300 px-3 py-2 focus:ring focus:ring-blue-200 focus:outline-none"
+                            aria-label="Sélectionner un client">
+                        <option value="">-- Sélectionner un client --</option>
+                        @foreach ($clients as $client)
+                            <option value="{{ $client->id }}" @selected(old('client_id', $marchandise?->client_id ?? '') == $client->id)>
+                                {{ $client->raison_sociale }}
+                            </option>
+                        @endforeach
                     </select>
-                    @error('statut') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
+                    <button type="button" onclick="openClientModal()"
+                            class="mt-1 bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 whitespace-nowrap flex items-center gap-2"
+                            aria-label="Ajouter un nouveau client">
+                        <x-heroicon-o-plus class="w-5 h-5" aria-hidden="true" /> Ajouter Client
+                    </button>
                 </div>
-
+                @error('client_id') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
+
+            <!-- Conteneur pour les marchandises -->
+            <div id="marchandisesContainer" class="space-y-6">
+                <!-- Modèle de bloc de marchandise -->
+                <div class="marchandise-block border p-4 rounded-lg relative" data-index="0">
+                    <button type="button" onclick="removeMarchandiseBlock(this)"
+                            class="absolute top-2 right-2 text-red-600 hover:text-red-800 hidden"
+                            aria-label="Supprimer cette marchandise">
+                        <x-heroicon-o-x-mark class="w-5 h-5" aria-hidden="true" />
+                    </button>
+                    <h3 class="text-lg font-semibold mb-4">Marchandise 1</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Trajet -->
+                        <div class="md:col-span-2">
+                            <label for="marchandises[0][trajet_id]" class="block text-sm font-medium text-gray-700">
+                                Trajet *
+                                <span class="text-gray-500 cursor-help" title="Sélectionnez ou ajoutez un trajet">ⓘ</span>
+                            </label>
+                            <div class="flex gap-2">
+                                <select name="marchandises[0][trajet_id]" required
+                                        class="mt-1 block w-full rounded border border-gray-300 px-3 py-2 focus:ring focus:ring-blue-200 focus:outline-none"
+                                        aria-label="Sélectionner un trajet">
+                                    <option value="">-- Sélectionner un trajet --</option>
+                                    @foreach($trajets as $trajet)
+                                        <option value="{{ $trajet->id }}"
+                                                @selected(old('marchandises.0.trajet_id', $marchandise?->trajet_id ?? '') == $trajet->id)>
+                                            {{ $trajet->itineraire->lieu_depart }} → {{ $trajet->itineraire->lieu_arrivee }}
+                                            ({{ \Carbon\Carbon::parse($trajet->date_depart)->format('d/m/Y') }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <button type="button" onclick="openTrajetModal()"
+                                        class="mt-1 bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700 whitespace-nowrap flex items-center gap-2"
+                                        aria-label="Ajouter un nouveau trajet">
+                                    <x-heroicon-o-plus class="w-5 h-5" aria-hidden="true" /> Ajouter Trajet
+                                </button>
+                            </div>
+                            @error('marchandises.0.trajet_id') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
+                        </div>
+
+                        <!-- Description -->
+                        <div class="md:col-span-2">
+                            <label for="marchandises[0][description]" class="block text-sm font-medium text-gray-700">
+                                Description
+                                <span class="text-gray-500 cursor-help" title="Décrivez le contenu de la marchandise">ⓘ</span>
+                            </label>
+                            <div class="relative">
+                                <x-heroicon-o-clipboard class="absolute left-3 top-3 w-5 h-5 text-gray-400" aria-hidden="true" />
+                                <textarea name="marchandises[0][description]" rows="3"
+                                          class="mt-1 block w-full rounded border border-gray-300 px-10 py-2 resize-y focus:ring focus:ring-blue-200 focus:outline-none"
+                                          aria-label="Description de la marchandise">{{ old('marchandises.0.description', $marchandise?->description ?? '') }}</textarea>
+                            </div>
+                            @error('marchandises.0.description') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
+                        </div>
+
+                        <!-- Poids (kg) -->
+                        <div>
+                            <label for="marchandises[0][poids_kg]" class="block text-sm font-medium text-gray-700">
+                                Poids (kg)
+                                <span class="text-gray-500 cursor-help" title="Poids en kilogrammes">ⓘ</span>
+                            </label>
+                            <div class="relative">
+                                <x-heroicon-o-scale class="absolute left-3 top-3 w-5 h-5 text-gray-400" aria-hidden="true" />
+                                <input type="number" step="0.01" name="marchandises[0][poids_kg]"
+                                       class="mt-1 block w-full rounded border border-gray-300 px-10 py-2 focus:ring focus:ring-blue-200 focus:outline-none"
+                                       value="{{ old('marchandises.0.poids_kg', $marchandise?->poids_kg ?? '') }}"
+                                       oninput="validateNumber(this)"
+                                       aria-label="Poids en kilogrammes">
+                                <p class="text-red-600 text-xs mt-1 hidden" data-error="poids_kg">Le poids ne peut pas être négatif</p>
+                            </div>
+                            @error('marchandises.0.poids_kg') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
+                        </div>
+
+                        <!-- Volume (m³) -->
+                        <div>
+                            <label for="marchandises[0][volume_m3]" class="block text-sm font-medium text-gray-700">
+                                Volume (m³)
+                                <span class="text-gray-500 cursor-help" title="Volume en mètres cubes">ⓘ</span>
+                            </label>
+                            <div class="relative">
+                                <x-heroicon-o-cube class="absolute left-3 top-3 w-5 h-5 text-gray-400" aria-hidden="true" />
+                                <input type="number" step="0.01" name="marchandises[0][volume_m3]"
+                                       class="mt-1 block w-full rounded border border-gray-300 px-10 py-2 focus:ring focus:ring-blue-200 focus:outline-none"
+                                       value="{{ old('marchandises.0.volume_m3', $marchandise?->volume_m3 ?? '') }}"
+                                       oninput="validateNumber(this)"
+                                       aria-label="Volume en mètres cubes">
+                                <p class="text-red-600 text-xs mt-1 hidden" data-error="volume_m3">Le volume ne peut pas être négatif</p>
+                            </div>
+                            @error('marchandises.0.volume_m3') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
+                        </div>
+
+                        <!-- Valeur estimée (Ariary) -->
+                        <div>
+                            <label for="marchandises[0][valeur_estimee]" class="block text-sm font-medium text-gray-700">
+                                Valeur estimée (Ariary)
+                                <span class="text-gray-500 cursor-help" title="Valeur estimée en Ariary">ⓘ</span>
+                            </label>
+                            <div class="relative">
+                                <x-heroicon-o-currency-dollar class="absolute left-3 top-3 w-5 h-5 text-gray-400" aria-hidden="true" />
+                                <input type="number" step="0.01" name="marchandises[0][valeur_estimee]"
+                                       class="mt-1 block w-full rounded border border-gray-300 px-10 py-2 focus:ring focus:ring-blue-200 focus:outline-none"
+                                       value="{{ old('marchandises.0.valeur_estimee', $marchandise?->valeur_estimee ?? '') }}"
+                                       oninput="validateNumber(this)"
+                                       aria-label="Valeur estimée en Ariary">
+                                <p class="text-red-600 text-xs mt-1 hidden" data-error="valeur_estimee">La valeur ne peut pas être négative</p>
+                            </div>
+                            @error('marchandises.0.valeur_estimee') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
+                        </div>
+
+                        <!-- Lieu de livraison -->
+                        <div>
+                            <label for="marchandises[0][lieu_livraison]" class="block text-sm font-medium text-gray-700">
+                                Lieu de livraison
+                                <span class="text-gray-500 cursor-help" title="Adresse ou lieu de livraison">ⓘ</span>
+                            </label>
+                            <div class="relative">
+                                <x-heroicon-o-map-pin class="absolute left-3 top-3 w-5 h-5 text-gray-400" aria-hidden="true" />
+                                <input type="text" name="marchandises[0][lieu_livraison]"
+                                       class="mt-1 block w-full rounded border border-gray-300 px-10 py-2 focus:ring focus:ring-blue-200 focus:outline-none"
+                                       value="{{ old('marchandises.0.lieu_livraison', $marchandise?->lieu_livraison ?? '') }}"
+                                       aria-label="Lieu de livraison">
+                            </div>
+                            @error('marchandises.0.lieu_livraison') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
+                        </div>
+
+                        <!-- Statut -->
+                        <div>
+                            <label for="marchandises[0][statut]" class="block text-sm font-medium text-gray-700">
+                                Statut
+                                <span class="text-gray-500 cursor-help" title="Statut actuel de la marchandise">ⓘ</span>
+                            </label>
+                            <select name="marchandises[0][statut]"
+                                    class="mt-1 block w-full rounded border border-gray-300 px-3 py-2 focus:ring focus:ring-blue-200 focus:outline-none"
+                                    aria-label="Statut de la marchandise">
+                                <option value="chargee" @selected(old('marchandises.0.statut', $marchandise?->statut ?? '') == 'chargee')>Chargée</option>
+                                <option value="en_transit" @selected(old('marchandises.0.statut', $marchandise?->statut ?? '') == 'en_transit')>En transit</option>
+                                <option value="livree" @selected(old('marchandises.0.statut', $marchandise?->statut ?? '') == 'livree')>Livrée</option>
+                                <option value="retour" @selected(old('marchandises.0.statut', $marchandise?->statut ?? '') == 'retour')>Retour</option>
+                            </select>
+                            @error('marchandises.0.statut') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bouton pour ajouter une nouvelle marchandise (uniquement en mode création) -->
+            @unless(isset($marchandise))
+                <div class="mt-4">
+                    <button type="button" onclick="addMarchandiseBlock()"
+                            class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center gap-2"
+                            aria-label="Ajouter une nouvelle marchandise">
+                        <x-heroicon-o-plus class="w-5 h-5" aria-hidden="true" /> Ajouter une marchandise
+                    </button>
+                </div>
+            @endunless
 
             <!-- Boutons -->
             <div class="mt-6 flex justify-end gap-3">
                 <a href="{{ route('marchandises.index') }}"
-                   class="px-4 py-2 rounded border border-gray-300 text-gray-600 hover:bg-gray-100">
-                    <i class="fas fa-arrow-left mr-1"></i> Annuler
+                   class="px-4 py-2 rounded border border-gray-300 text-gray-600 hover:bg-gray-100 flex items-center gap-2"
+                   aria-label="Annuler et revenir à la liste">
+                    <x-heroicon-o-arrow-left class="w-5 h-5" aria-hidden="true" /> Annuler
                 </a>
-
-                <x-button type="submit"
-                          class="px-6 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700 flex items-center gap-2">
+                <button type="submit"
+                        class="px-6 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700 flex items-center gap-2"
+                        aria-label="{{ isset($marchandise) ? 'Mettre à jour la marchandise' : 'Enregistrer les marchandises' }}">
                     @if(isset($marchandise))
-                         <i class="fas fa-pen mr-1"></i> Mettre à jour
+                        <x-heroicon-o-pencil class="w-5 h-5" aria-hidden="true" /> Mettre à jour
                     @else
-                        <i class="fas fa-save mr-1"></i> Enregistrer
+                        <x-heroicon-o-check class="w-5 h-5" aria-hidden="true" /> Enregistrer
                     @endif
-                </x-button>
+                </button>
             </div>
         </form>
-
     </div>
 
     <!-- Modales -->
@@ -145,165 +222,224 @@
     @include('modals.trajet-create')
 
     <script>
-        // === FONCTIONS POUR MODALE CLIENT ===
+        let marchandiseIndex = 1;
+
+        // Ajouter un nouveau bloc de marchandise
+        function addMarchandiseBlock() {
+            const container = document.getElementById('marchandisesContainer');
+            const template = container.querySelector('.marchandise-block').cloneNode(true);
+            template.dataset.index = marchandiseIndex;
+            template.querySelector('h3').textContent = `Marchandise ${marchandiseIndex + 1}`;
+
+            // Mettre à jour les noms des champs
+            template.querySelectorAll('[name]').forEach(input => {
+                const name = input.name.replace(/marchandises\[0\]/, `marchandises[${marchandiseIndex}]`);
+                input.name = name;
+                input.value = '';
+                if (input.tagName === 'SELECT') {
+                    input.selectedIndex = 0;
+                }
+            });
+
+            // Afficher le bouton de suppression
+            const removeBtn = template.querySelector('button[onclick="removeMarchandiseBlock(this)"]');
+            removeBtn.classList.remove('hidden');
+
+            // Réinitialiser les messages d'erreur
+            template.querySelectorAll('[data-error]').forEach(error => error.classList.add('hidden'));
+            template.querySelectorAll('input, textarea, select').forEach(input => {
+                input.classList.remove('border-red-500');
+            });
+
+            container.appendChild(template);
+            marchandiseIndex++;
+        }
+
+        // Supprimer un bloc de marchandise
+        function removeMarchandiseBlock(btn) {
+            if (document.querySelectorAll('.marchandise-block').length > 1) {
+                btn.closest('.marchandise-block').remove();
+            } else {
+                showErrorMessage('Vous devez conserver au moins une marchandise.');
+            }
+        }
+
+        // Validation des champs numériques
+        function validateNumber(input) {
+            const value = parseFloat(input.value);
+            const errorDiv = input.nextElementSibling;
+            if (value < 0) {
+                errorDiv.classList.remove('hidden');
+                input.classList.add('border-red-500');
+            } else {
+                errorDiv.classList.add('hidden');
+                input.classList.remove('border-red-500');
+            }
+        }
+
+        // Validation du formulaire avant soumission
+        document.getElementById('marchandiseForm').addEventListener('submit', function(e) {
+            let hasErrors = false;
+            const clientSelect = document.getElementById('client_id');
+            if (!clientSelect.value) {
+                clientSelect.classList.add('border-red-500');
+                const errorDiv = clientSelect.parentElement.nextElementSibling || document.createElement('p');
+                errorDiv.className = 'text-red-600 text-xs mt-1';
+                errorDiv.textContent = 'Veuillez sélectionner un client.';
+                clientSelect.parentElement.parentElement.appendChild(errorDiv);
+                hasErrors = true;
+            } else {
+                clientSelect.classList.remove('border-red-500');
+                const errorDiv = clientSelect.parentElement.nextElementSibling;
+                if (errorDiv && errorDiv.tagName === 'P') errorDiv.remove();
+            }
+
+            document.querySelectorAll('select[name$="[trajet_id]"]').forEach(select => {
+                if (!select.value) {
+                    select.classList.add('border-red-500');
+                    const errorDiv = select.parentElement.nextElementSibling || document.createElement('p');
+                    errorDiv.className = 'text-red-600 text-xs mt-1';
+                    errorDiv.textContent = 'Veuillez sélectionner un trajet.';
+                    select.parentElement.parentElement.appendChild(errorDiv);
+                    hasErrors = true;
+                } else {
+                    select.classList.remove('border-red-500');
+                    const errorDiv = select.parentElement.nextElementSibling;
+                    if (errorDiv && errorDiv.tagName === 'P') errorDiv.remove();
+                }
+            });
+
+            if (hasErrors) {
+                e.preventDefault();
+                showErrorMessage('Veuillez corriger les erreurs avant de soumettre.');
+            }
+        });
+
+        // Ouvrir la modale client
         function openClientModal() {
             const modal = document.getElementById('clientModal');
             const modalContent = document.getElementById('clientModalContent');
-
-            // Afficher la modale avec l'overlay
             modal.classList.remove('opacity-0', 'invisible');
             modal.classList.add('opacity-100', 'visible');
-
-            // Animer le contenu du haut vers le centre
             setTimeout(() => {
                 modalContent.classList.remove('-translate-y-full', 'scale-95');
                 modalContent.classList.add('translate-y-0', 'scale-100');
-            }, 10);
-
-            // Focus sur le premier champ
-            setTimeout(() => {
                 document.getElementById('modal_raison_sociale')?.focus();
-            }, 350);
+            }, 10);
+            document.body.style.overflow = 'hidden';
         }
 
+        // Fermer la modale client
         function closeClientModal() {
             const modal = document.getElementById('clientModal');
             const modalContent = document.getElementById('clientModalContent');
-
-            // Animer le contenu vers le haut
             modalContent.classList.remove('translate-y-0', 'scale-100');
             modalContent.classList.add('-translate-y-full', 'scale-95');
-
-            // Masquer la modale après l'animation
             setTimeout(() => {
                 modal.classList.remove('opacity-100', 'visible');
                 modal.classList.add('opacity-0', 'invisible');
                 document.getElementById('clientForm').reset();
+                document.body.style.overflow = '';
             }, 300);
         }
 
-        // === FONCTIONS POUR MODALE TRAJET ===
+        // Ouvrir la modale trajet
         function openTrajetModal() {
             const modal = document.getElementById('trajetModal');
             const modalContent = document.getElementById('trajetModalContent');
-
-            // Afficher la modale avec l'overlay
             modal.classList.remove('opacity-0', 'invisible');
             modal.classList.add('opacity-100', 'visible');
-
-            // Animer le contenu du haut vers le centre
             setTimeout(() => {
                 modalContent.classList.remove('-translate-y-full', 'scale-95');
                 modalContent.classList.add('translate-y-0', 'scale-100');
-            }, 10);
-
-            // Focus sur le premier champ
-            setTimeout(() => {
                 document.getElementById('modal_camion_id')?.focus();
-            }, 350);
+            }, 10);
+            document.body.style.overflow = 'hidden';
         }
 
+        // Fermer la modale trajet
         function closeTrajetModal() {
             const modal = document.getElementById('trajetModal');
             const modalContent = document.getElementById('trajetModalContent');
-
-            // Animer le contenu vers le haut
             modalContent.classList.remove('translate-y-0', 'scale-100');
             modalContent.classList.add('-translate-y-full', 'scale-95');
-
-            // Masquer la modale après l'animation
             setTimeout(() => {
                 modal.classList.remove('opacity-100', 'visible');
                 modal.classList.add('opacity-0', 'invisible');
                 document.getElementById('trajetForm').reset();
+                document.body.style.overflow = '';
             }, 300);
         }
 
-        // === SOUMISSION FORMULAIRE CLIENT ===
-        document.getElementById('clientForm').addEventListener('submit', function (e) {
+        // Soumission formulaire Client
+        document.getElementById('clientForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const formData = new FormData(this);
-
-            // Désactiver le bouton de soumission
-            const submitBtn = this.querySelector('button[type="submit"]');
-            const originalText = submitBtn.innerHTML;
+            const submitBtn = document.getElementById('clientSubmitBtn');
+            const originalContent = submitBtn.innerHTML;
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Enregistrement...';
+            submitBtn.innerHTML = '<svg class="w-5 h-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Enregistrement...';
 
-        fetch('{{ route('clients.store.ajax') }}', {
-    method: 'POST',
-    headers: {
-        'X-CSRF-TOKEN': formData.get('_token'),
-        'Accept': 'application/json'
-    },
-    body: formData
-})
+            fetch('{{ route('clients.store.ajax') }}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': formData.get('_token'),
+                    'Accept': 'application/json'
+                },
+                body: formData
+            })
             .then(response => {
-                if (!response.ok) {
-                    throw new Error('Erreur réseau');
-                }
+                if (!response.ok) throw new Error('Erreur réseau');
                 return response.json();
             })
             .then(data => {
                 if (data.success) {
-                    // Ajouter le nouveau client au select
                     const select = document.getElementById('client_id');
                     const option = new Option(data.client.raison_sociale, data.client.id, true, true);
                     select.appendChild(option);
-
-                    // Fermer la modale
                     closeClientModal();
-
-                    // Message de succès
                     showSuccessMessage('Client ajouté avec succès');
                 } else {
                     throw new Error(data.message || 'Erreur lors de l\'ajout du client');
                 }
             })
             .catch(error => {
-                console.error('Erreur:', error);
-                showErrorMessage('Erreur lors de l\'ajout du client: ' + error.message);
+                showErrorMessage('Erreur: ' + error.message);
             })
             .finally(() => {
-                // Réactiver le bouton
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = originalText;
+                submitBtn.innerHTML = originalContent;
             });
         });
 
-        // === SOUMISSION FORMULAIRE TRAJET ===
-        document.getElementById('trajetForm').addEventListener('submit', function (e) {
+        // Soumission formulaire Trajet
+        document.getElementById('trajetForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const formData = new FormData(this);
-
-            const submitBtn = this.querySelector('button[type="submit"]');
-            const originalText = submitBtn.innerHTML;
+            const submitBtn = document.getElementById('trajetSubmitBtn');
+            const originalContent = submitBtn.innerHTML;
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Enregistrement...';
+            submitBtn.innerHTML = '<svg class="w-5 h-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Enregistrement...';
 
-        fetch('{{ route('trajets.store.ajax') }}', {
-    method: 'POST',
-    headers: {
-        'X-CSRF-TOKEN': formData.get('_token'),
-        'Accept': 'application/json'
-    },
-    body: formData
-})
-
+            fetch('{{ route('trajets.store.ajax') }}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': formData.get('_token'),
+                    'Accept': 'application/json'
+                },
+                body: formData
+            })
             .then(response => {
-                if (!response.ok) {
-                    throw new Error('Erreur réseau');
-                }
+                if (!response.ok) throw new Error('Erreur réseau');
                 return response.json();
             })
             .then(data => {
                 if (data.success) {
-                    // Ajouter le nouveau trajet au select
-                    const select = document.getElementById('trajet_id');
-                    const optionText = `${data.trajet.lieu_depart} → ${data.trajet.lieu_arrivee} (${data.trajet.date_depart})`;
-                    const option = new Option(optionText, data.trajet.id, true, true);
-                    select.appendChild(option);
-
+                    document.querySelectorAll('select[name$="[trajet_id]"]').forEach(select => {
+                        const optionText = `${data.trajet.lieu_depart} → ${data.trajet.lieu_arrivee} (${data.trajet.date_depart})`;
+                        const option = new Option(optionText, data.trajet.id, false, false);
+                        select.appendChild(option);
+                    });
                     closeTrajetModal();
                     showSuccessMessage('Trajet ajouté avec succès');
                 } else {
@@ -311,83 +447,53 @@
                 }
             })
             .catch(error => {
-                console.error('Erreur:', error);
-                showErrorMessage('Erreur lors de l\'ajout du trajet: ' + error.message);
+                showErrorMessage('Erreur: ' + error.message);
             })
             .finally(() => {
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = originalText;
+                submitBtn.innerHTML = originalContent;
             });
         });
 
-        // === FONCTIONS UTILITAIRES ===
+        // Notifications Toastify
         function showSuccessMessage(message) {
-            // Vous pouvez utiliser une librairie comme Toastr ou créer votre propre système de notification
-            alert(message); // Remplacez par votre système de notification
+            Toastify({
+                text: message,
+                duration: 3000,
+                gravity: "top",
+                position: "right",
+                backgroundColor: "#10B981",
+            }).showToast();
         }
 
         function showErrorMessage(message) {
-            alert(message); // Remplacez par votre système de notification
+            Toastify({
+                text: message,
+                duration: 3000,
+                gravity: "top",
+                position: "right",
+                backgroundColor: "#EF4444",
+            }).showToast();
         }
 
-        // Fermer les modales en cliquant à l'extérieur ou avec Escape
-        document.addEventListener('click', function(e) {
-            if (e.target.id === 'clientModal') {
-                closeClientModal();
-            }
-            if (e.target.id === 'trajetModal') {
-                closeTrajetModal();
-            }
-        });
-
+        // Fermer les modales avec Escape ou clic extérieur
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
-                const clientModal = document.getElementById('clientModal');
-                const trajetModal = document.getElementById('trajetModal');
-
-                if (clientModal.classList.contains('opacity-100')) {
-                    closeClientModal();
-                }
-                if (trajetModal.classList.contains('opacity-100')) {
-                    closeTrajetModal();
-                }
+                if (document.getElementById('clientModal').classList.contains('opacity-100')) closeClientModal();
+                if (document.getElementById('trajetModal').classList.contains('opacity-100')) closeTrajetModal();
             }
         });
 
-        // Empêcher le scroll du body quand une modale est ouverte
-        function toggleBodyScroll(disable) {
-            if (disable) {
-                document.body.style.overflow = 'hidden';
-            } else {
-                document.body.style.overflow = '';
-            }
-        }
+        document.addEventListener('click', function(e) {
+            if (e.target.id === 'clientModal') closeClientModal();
+            if (e.target.id === 'trajetModal') closeTrajetModal();
+        });
 
-        // Mettre à jour les fonctions d'ouverture pour désactiver le scroll
-        const originalOpenClientModal = openClientModal;
-        const originalOpenTrajetModal = openTrajetModal;
-        const originalCloseClientModal = closeClientModal;
-        const originalCloseTrajetModal = closeTrajetModal;
-
-        openClientModal = function() {
-            toggleBodyScroll(true);
-            originalOpenClientModal();
-        };
-
-        openTrajetModal = function() {
-            toggleBodyScroll(true);
-            originalOpenTrajetModal();
-        };
-
-        closeClientModal = function() {
-            toggleBodyScroll(false);
-            originalCloseClientModal();
-        };
-
-        closeTrajetModal = function() {
-            toggleBodyScroll(false);
-            originalCloseTrajetModal();
-        };
+        // Initialiser le formulaire en mode édition
+        @if(isset($marchandise))
+            document.querySelectorAll('.marchandise-block input, .marchandise-block textarea, .marchandise-block select').forEach(input => {
+                input.name = input.name.replace(/marchandises\[0\]\[(\w+)\]/, '$1');
+            });
+        @endif
     </script>
-
 </x-layouts.app>

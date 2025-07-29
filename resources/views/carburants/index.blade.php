@@ -47,10 +47,10 @@
                     @forelse ($carburants as $carburant)
                         <tr class="border-b hover:bg-gray-50 text-center">
                             <td class="px-4 py-2 font-medium">
-                                {{ $carburant->camion->immatriculation ?? '—' }}
+                                {{ $carburant->camion->matricule ?? '—' }}
                             </td>
                                 <td class="px-4 py-2 text-left">
-                                @if ($carburant->trajet && $marchandise->trajet->itineraire)
+                                @if ($carburant->trajet)
                                     {{ $carburant->trajet->itineraire->lieu_depart }} →
                                     {{ $carburant->trajet->itineraire->lieu_arrivee }}
                                     ({{ \Carbon\Carbon::parse($carburant->trajet->date_depart)->format('d/m/Y') }})
@@ -59,7 +59,7 @@
                                 @endif
                             </td>
 
-                            <td class="px-4 py-2">{{ $carburant->date->format('d/m/Y') }}</td>
+                            <td class="px-4 py-2">{{ $carburant->date_achat->format('d/m/Y') }}</td>
                             <td class="px-4 py-2">{{ $carburant->quantite_litres }} L</td>
                             <td class="px-4 py-2">{{ number_format($carburant->prix_total, 0, ',', ' ') }} Ar</td>
                             <td class="px-4 py-2">{{ $carburant->station ?? '-' }}</td>
