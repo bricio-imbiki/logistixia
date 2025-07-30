@@ -37,11 +37,17 @@
                          Trajets
                      </x-layouts.sidebar-link>
 
+                        <!-- Marchandises -->
                      <x-layouts.sidebar-link href="{{ route('marchandises.index') }}" icon="fas-boxes"
                          :active="request()->routeIs('marchandises*')">
                          Marchandises
                      </x-layouts.sidebar-link>
 
+                        <!-- Commandes -->
+                        <x-layouts.sidebar-link href="{{ route('marchandise-transportee.index') }}" icon="fas-clipboard-list"
+                            :active="request()->routeIs('marchandise-transportee*')">
+                            Commandes
+                        </x-layouts.sidebar-link>
                      <!-- Carburant -->
                      <x-layouts.sidebar-link href="{{ route('carburants.index') }}" icon="fas-gas-pump"
                          :active="request()->routeIs('carburants*')">

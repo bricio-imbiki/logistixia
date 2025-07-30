@@ -3,10 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
-namespace App\Models;
-
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Trajet extends Model
@@ -38,11 +34,9 @@ class Trajet extends Model
         return $this->belongsTo(Itineraire::class);
     }
 
-   public function marchandises()
-    {
-        return $this->hasMany(Marchandise::class, 'trajet_id');
-    }
-
+ public function marchandisesTransportees() {
+    return $this->hasMany(MarchandiseTransportee::class, 'trajet_id');
+}
     public function depenses()
     {
         return $this->hasMany(Depense::class);

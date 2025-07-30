@@ -2,20 +2,49 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Revenu extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'marchandise_id', 'montant', 'date_encaisse', 'notes'
+        'marchandise_transportee_id',
+        'montant',
+        'date_encaisse',
+        'notes',
     ];
 
-    public function marchandise()
-    {
-        return $this->belongsTo(Marchandise::class);
-    }
+    /**
+     * Relation : ce revenu est lié à une marchandise transportée (trajet + client).
+     */
+ public function transport()
+{
+    return $this->belongsTo(MarchandiseTransportee::class);
 }
 
+    /**
+     * Accès rapide à la marchandise (via la marchandise transportée).
+     */
+    public function marchandise()
+    {
+        return $this->transport?->marchandise;
+    }
+
+    /**
+     * Accès rapide au client (via la marchandise transportée).
+     */
+    public function client()
+    {
+        return $this->transport?->client;
+    }
+
+    /**
+     * Accès rapide au trajet (via la marchandise transportée).
+     */
+    public function trajet()
+    {
+        return $this->transport?->trajet;
+    }
+}

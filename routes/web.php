@@ -8,6 +8,7 @@ use App\Http\Controllers\CamionController;
 use App\Http\Controllers\CarburantController;
 use App\Http\Controllers\RemorqueController;
 use App\Http\Controllers\ChauffeurController;
+use App\Http\Controllers\CommandeController;
 use App\Http\Controllers\ItineraireController;
 use App\Http\Controllers\TrajetController;
 use App\Http\Controllers\MarchandiseController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\SuiviGpsController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\AppearanceController;
+use App\Models\MarchandiseTransportee;
 
 // Page d’accueil (tableau de bord)
 Route::get('/', [DashboardController::class, 'index'])->name('dashboard.index');
@@ -28,6 +30,7 @@ Route::resources([
     'itineraires'   => ItineraireController::class,
     'trajets'       => TrajetController::class,
     'marchandises'  => MarchandiseController::class,
+    'marchandise-transportee'     => MarchandiseTransportee::class,
     'carburants'    => CarburantController::class,
 ]);
 

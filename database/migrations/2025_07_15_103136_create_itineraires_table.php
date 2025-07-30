@@ -17,7 +17,6 @@ return new class extends Migration
             $table->string('lieu_arrivee', 120)->nullable();
             $table->decimal('distance_km', 8, 2)->nullable();
             $table->decimal('duree_estimee_h', 6, 2)->nullable();
-            $table->decimal('peage_estime', 10, 2)->nullable();
             $table->timestamps();
         });
     }

@@ -35,7 +35,6 @@
                         <th class="px-4 py-2">Lieu arrivée</th>
                         <th class="px-4 py-2">Distance (km)</th>
                         <th class="px-4 py-2">Durée estimée (h)</th>
-                        <th class="px-4 py-2">Péage estimé</th>
                         <th class="px-4 py-2 text-center">Actions</th>
                     </tr>
                 </thead>
@@ -46,7 +45,6 @@
             <td class="px-4 py-2">{{ $itineraire->lieu_arrivee ?? '-' }}</td>
             <td class="px-4 py-2">{{ $itineraire->distance_km ?? '-' }}</td>
             <td class="px-4 py-2">{{ $itineraire->duree_estimee_h ?? '-' }}</td>
-            <td class="px-4 py-2">{{ $itineraire->peage_estime ?? '-' }}</td>
             <td class="px-4 py-2">
                 <div class="inline-flex items-center gap-2 justify-center">
                     <a href="{{ route('itineraires.edit', $itineraire) }}"

@@ -40,8 +40,8 @@
                         <th class="px-4 py-2">Chauffeur</th>
                         <th class="px-4 py-2">Itinéraire</th>
                         <th class="px-4 py-2">Date départ</th>
-                        <th class="px-4 py-2">Date arrivée ETD</th>
-                        <th class="px-4 py-2">Date arrivée ETA</th>
+                        <th class="px-4 py-2">Date arrivée estime</th>
+                        <th class="px-4 py-2">Date arrivée reel</th>
                         <th class="px-4 py-2">Statut</th>
                         <th class="px-4 py-2">Commentaire</th>
                         <th class="px-4 py-2 text-center">Actions</th>

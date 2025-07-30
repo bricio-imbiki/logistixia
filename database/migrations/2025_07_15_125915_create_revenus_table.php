@@ -11,14 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-           Schema::create('revenus', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('marchandise_id')->constrained('marchandises');
-            $table->decimal('montant', 12, 2);
-            $table->date('date_encaisse');
-            $table->text('notes')->nullable();
-            $table->timestamps();
-        });
+  // migration correcte pour cette logique :
+Schema::create('revenus', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('marchandise_transportee_id')->constrained('marchandises_transportees')->onDelete('cascade');
+    $table->decimal('montant', 12, 2);
+    $table->date('date_encaisse');
+    $table->text('notes')->nullable();
+    $table->timestamps();
+});
+
     }
 
     /**

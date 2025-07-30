@@ -15,7 +15,7 @@ class ItineraireController extends Controller
             'lieu_arrivee' => ['nullable', 'string', 'max:120'],
             'distance_km' => ['nullable', 'numeric', 'min:0'],
             'duree_estimee_h' => ['nullable', 'numeric', 'min:0'],
-            'peage_estime' => ['nullable', 'numeric', 'min:0'],
+
         ]);
     }
 

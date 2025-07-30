@@ -60,7 +60,7 @@
                                 <span class="text-gray-500 cursor-help" title="Sélectionnez ou ajoutez un trajet">ⓘ</span>
                             </label>
                             <div class="flex gap-2">
-                                <select name="marchandises[0][trajet_id]" required
+                                <select name="marchandises[0][trajet_id]" id="marchandises_0_trajet_id" required
                                         class="mt-1 block w-full rounded border border-gray-300 px-3 py-2 focus:ring focus:ring-blue-200 focus:outline-none"
                                         aria-label="Sélectionner un trajet">
                                     <option value="">-- Sélectionner un trajet --</option>
@@ -72,7 +72,7 @@
                                         </option>
                                     @endforeach
                                 </select>
-                                <button type="button" onclick="openTrajetModal()"
+                                <button type="button" onclick="openTrajetModal(0)"
                                         class="mt-1 bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700 whitespace-nowrap flex items-center gap-2"
                                         aria-label="Ajouter un nouveau trajet">
                                     <x-heroicon-o-plus class="w-5 h-5" aria-hidden="true" /> Ajouter Trajet
@@ -204,19 +204,23 @@
                    aria-label="Annuler et revenir à la liste">
                     <x-heroicon-o-arrow-left class="w-5 h-5" aria-hidden="true" /> Annuler
                 </a>
-                <button type="submit"
+                <button type="submit" id="submitButton"
                         class="px-6 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700 flex items-center gap-2"
                         aria-label="{{ isset($marchandise) ? 'Mettre à jour la marchandise' : 'Enregistrer les marchandises' }}">
-                    @if(isset($marchandise))
-                        <x-heroicon-o-pencil class="w-5 h-5" aria-hidden="true" /> Mettre à jour
-                    @else
-                        <x-heroicon-o-check class="w-5 h-5" aria-hidden="true" /> Enregistrer
-                    @endif
+                    <span class="submit-text">
+                        @if(isset($marchandise))
+                            <x-heroicon-o-pencil class="w-5 h-5" aria-hidden="true" /> Mettre à jour
+                        @else
+                            <x-heroicon-o-check class="w-5 h-5" aria-hidden="true" /> Enregistrer
+                        @endif
+                    </span>
+                    <span class="loading-text hidden">
+                        <i class="fas fa-spinner fa-spin mr-1"></i> Enregistrement...
+                    </span>
                 </button>
             </div>
         </form>
     </div>
-
     <!-- Modales -->
     @include('modals.client-create')
     @include('modals.trajet-create')
@@ -224,12 +228,181 @@
     <script>
         let marchandiseIndex = {{ isset($marchandise) ? 1 : 1 }};
 
-        // Ajouter un nouveau bloc de marchandise
+        // === FONCTIONS POUR MODALE CLIENT ===
+        function openClientModal() {
+            const modal = document.getElementById('clientModal');
+            const modalContent = document.getElementById('clientModalContent');
+            modal.classList.remove('opacity-0', 'invisible');
+            modal.classList.add('opacity-100', 'visible');
+            setTimeout(() => {
+                modalContent.classList.remove('-translate-y-full', 'scale-95');
+                modalContent.classList.add('translate-y-0', 'scale-100');
+                document.getElementById('modal_raison_sociale')?.focus();
+            }, 10);
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeClientModal() {
+            const modal = document.getElementById('clientModal');
+            const modalContent = document.getElementById('clientModalContent');
+            modalContent.classList.remove('translate-y-0', 'scale-100');
+            modalContent.classList.add('-translate-y-full', 'scale-95');
+            setTimeout(() => {
+                modal.classList.remove('opacity-100', 'visible');
+                modal.classList.add('opacity-0', 'invisible');
+                document.getElementById('clientForm').reset();
+                document.body.style.overflow = '';
+            }, 300);
+        }
+
+        // === FONCTIONS POUR MODALE TRAJET ===
+        function openTrajetModal(index) {
+            const modal = document.getElementById('trajetModal');
+            const modalContent = document.getElementById('trajetModalContent');
+            modal.dataset.index = index; // Stocker l'index du bloc de marchandise
+            modal.classList.remove('opacity-0', 'invisible');
+            modal.classList.add('opacity-100', 'visible');
+            setTimeout(() => {
+                modalContent.classList.remove('-translate-y-full', 'scale-95');
+                modalContent.classList.add('translate-y-0', 'scale-100');
+                document.getElementById('modal_camion_id')?.focus();
+            }, 10);
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeTrajetModal() {
+            const modal = document.getElementById('trajetModal');
+            const modalContent = document.getElementById('trajetModalContent');
+            modalContent.classList.remove('translate-y-0', 'scale-100');
+            modalContent.classList.add('-translate-y-full', 'scale-95');
+            setTimeout(() => {
+                modal.classList.remove('opacity-100', 'visible');
+                modal.classList.add('opacity-0', 'invisible');
+                document.getElementById('trajetForm').reset();
+                document.body.style.overflow = '';
+            }, 300);
+        }
+
+        // === SOUMISSION FORMULAIRE CLIENT ===
+        document.getElementById('clientForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Enregistrement...';
+
+            fetch('{{ route('clients.store.ajax') }}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': formData.get('_token'),
+                    'Accept': 'application/json'
+                },
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erreur réseau: ' + response.statusText);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    const select = document.getElementById('client_id');
+                    const option = new Option(data.client.raison_sociale, data.client.id, true, true);
+                    select.appendChild(option);
+                    closeClientModal();
+                    showSuccessMessage('Client ajouté avec succès');
+                } else {
+                    throw new Error(data.message || 'Erreur lors de l\'ajout du client');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur client:', error);
+                showErrorMessage('Erreur lors de l\'ajout du client: ' + error.message);
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            });
+        });
+
+        // === SOUMISSION FORMULAIRE TRAJET ===
+        document.getElementById('trajetForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Enregistrement...';
+
+        fetch('{{ route('trajets.store.ajax') }}', {
+    method: 'POST',
+    headers: {
+        'X-CSRF-TOKEN': formData.get('_token'),
+        'Accept': 'application/json'
+    },
+    body: formData
+})
+.then(response => {
+                if (!response.ok) {
+                    throw new Error('Erreur réseau');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Ajouter le nouveau trajet au select
+                    const select = document.getElementById('trajet_id');
+                    const optionText = `${data.trajet.lieu_depart} → ${data.trajet.lieu_arrivee} (${data.trajet.date_depart})`;
+                    const option = new Option(optionText, data.trajet.id, true, true);
+                    select.appendChild(option);
+
+                    closeTrajetModal();
+                    showSuccessMessage('Trajet ajouté avec succès');
+                } else {
+                    throw new Error(data.message || 'Erreur lors de l\'ajout du trajet');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                showErrorMessage('Erreur lors de l\'ajout du trajet: ' + error.message);
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            });
+        });
+
+
+        // === FONCTIONS UTILITAIRES ===
+        function showSuccessMessage(message) {
+            Toastify({
+                text: message,
+                duration: 3000,
+                gravity: 'top',
+                position: 'right',
+                backgroundColor: '#10B981',
+            }).showToast();
+        }
+
+        function showErrorMessage(message) {
+            Toastify({
+                text: message,
+                duration: 5000,
+                gravity: 'top',
+                position: 'right',
+                backgroundColor: '#EF4444',
+            }).showToast();
+        }
+
+        // === GESTION DES BLOCS DE MARCHANDISE ===
         function addMarchandiseBlock() {
             const container = document.getElementById('marchandisesContainer');
             const template = container.querySelector('.marchandise-block').cloneNode(true);
             template.dataset.index = marchandiseIndex;
-            template.querySelector('h3').textContent = `{{ __('Marchandise') }} ${marchandiseIndex + 1}`;
+            template.querySelector('h3').textContent = `Marchandise ${marchandiseIndex + 1}`;
 
             // Mettre à jour les noms des champs
             template.querySelectorAll('[name]').forEach(input => {
@@ -240,6 +413,12 @@
                     input.selectedIndex = 0;
                 }
             });
+
+            // Mettre à jour l'ID du select de trajet et le bouton d'ajout de trajet
+            const trajetSelect = template.querySelector('select[name$="[trajet_id]"]');
+            trajetSelect.id = `marchandises_${marchandiseIndex}_trajet_id`;
+            const trajetButton = template.querySelector('button[onclick^="openTrajetModal"]');
+            trajetButton.setAttribute('onclick', `openTrajetModal(${marchandiseIndex})`);
 
             // Afficher le bouton de suppression
             const removeBtn = template.querySelector('button[onclick="removeMarchandiseBlock(this)"]');
@@ -255,16 +434,15 @@
             marchandiseIndex++;
         }
 
-        // Supprimer un bloc de marchandise
         function removeMarchandiseBlock(btn) {
             if (document.querySelectorAll('.marchandise-block').length > 1) {
                 btn.closest('.marchandise-block').remove();
             } else {
-                showErrorMessage('{{ __('Vous devez conserver au moins une marchandise.') }}');
+                showErrorMessage('Vous devez conserver au moins une marchandise.');
             }
         }
 
-        // Validation des champs numériques
+        // === VALIDATION DES CHAMPS NUMÉRIQUES ===
         function validateNumber(input) {
             const value = parseFloat(input.value);
             const errorDiv = input.nextElementSibling;
@@ -277,7 +455,7 @@
             }
         }
 
-        // Validation du formulaire avant soumission
+        // === VALIDATION DU FORMULAIRE ===
         function validateForm() {
             let hasErrors = false;
             const clientSelect = document.getElementById('client_id');
@@ -285,7 +463,7 @@
                 clientSelect.classList.add('border-red-500');
                 const errorDiv = clientSelect.parentElement.nextElementSibling || document.createElement('p');
                 errorDiv.className = 'text-red-600 text-xs mt-1';
-                errorDiv.textContent = '{{ __('Veuillez sélectionner un client.') }}';
+                errorDiv.textContent = 'Veuillez sélectionner un client.';
                 clientSelect.parentElement.parentElement.appendChild(errorDiv);
                 hasErrors = true;
             } else {
@@ -299,7 +477,7 @@
                     select.classList.add('border-red-500');
                     const errorDiv = select.parentElement.nextElementSibling || document.createElement('p');
                     errorDiv.className = 'text-red-600 text-xs mt-1';
-                    errorDiv.textContent = '{{ __('Veuillez sélectionner un trajet.') }}';
+                    errorDiv.textContent = 'Veuillez sélectionner un trajet.';
                     select.parentElement.parentElement.appendChild(errorDiv);
                     hasErrors = true;
                 } else {
@@ -325,15 +503,15 @@
             return !hasErrors;
         }
 
-        // Soumission du formulaire via AJAX
-        function submitForm(e) {
+        // === SOUMISSION FORMULAIRE PRINCIPAL ===
+        document.getElementById('marchandiseForm').addEventListener('submit', function (e) {
             e.preventDefault();
             if (!validateForm()) {
-                showErrorMessage('{{ __('Veuillez corriger les erreurs avant de soumettre.') }}');
+                showErrorMessage('Veuillez corriger les erreurs avant de soumettre.');
                 return;
             }
 
-            const form = document.getElementById('marchandiseForm');
+            const form = this;
             const submitBtn = document.getElementById('submitButton');
             const originalContent = submitBtn.innerHTML;
             submitBtn.disabled = true;
@@ -342,7 +520,6 @@
 
             const formData = new FormData(form);
             @if(isset($marchandise))
-                // En mode édition, ajuster les noms des champs pour correspondre à la validation
                 formData.delete('_method');
                 formData.append('_method', 'PUT');
                 form.querySelectorAll('.marchandise-block [name]').forEach(input => {
@@ -367,21 +544,22 @@
                             throw new Error(Object.values(data.errors).flat().join(' '));
                         });
                     }
-                    throw new Error('Erreur réseau');
+                    throw new Error('Erreur réseau: ' + response.statusText);
                 }
                 return response.json();
             })
             .then(data => {
                 if (data.success) {
-                    showSuccessMessage(data.message || '{{ isset($marchandise) ? __('Marchandise mise à jour avec succès.') : __('Marchandises ajoutées avec succès.') }}');
+                    showSuccessMessage(data.message || '{{ isset($marchandise) ? 'Marchandise mise à jour avec succès.' : 'Marchandises ajoutées avec succès.' }}');
                     setTimeout(() => {
                         window.location.href = '{{ route('marchandises.index') }}';
                     }, 1500);
                 } else {
-                    throw new Error(data.message || '{{ __('Erreur lors de la soumission.') }}');
+                    throw new Error(data.message || 'Erreur lors de la soumission.');
                 }
             })
             .catch(error => {
+                console.error('Erreur soumission:', error);
                 showErrorMessage('Erreur: ' + error.message);
             })
             .finally(() => {
@@ -390,99 +568,32 @@
                 submitBtn.querySelector('.loading-text').classList.add('hidden');
                 submitBtn.innerHTML = originalContent;
             });
-        }
+        });
 
-        // Ouvrir la modale client
-        function openClientModal() {
-            const modal = document.getElementById('clientModal');
-            const modalContent = document.getElementById('clientModalContent');
-            modal.classList.remove('opacity-0', 'invisible');
-            modal.classList.add('opacity-100', 'visible');
-            setTimeout(() => {
-                modalContent.classList.remove('-translate-y-full', 'scale-95');
-                modalContent.classList.add('translate-y-0', 'scale-100');
-                document.getElementById('modal_raison_sociale')?.focus();
-            }, 10);
-            document.body.style.overflow = 'hidden';
-        }
-
-        // Fermer la modale client
-        function closeClientModal() {
-            const modal = document.getElementById('clientModal');
-            const modalContent = document.getElementById('clientModalContent');
-            modalContent.classList.remove('translate-y-0', 'scale-100');
-            modalContent.classList.add('-translate-y-full', 'scale-95');
-            setTimeout(() => {
-                modal.classList.remove('opacity-100', 'visible');
-                modal.classList.add('opacity-0', 'invisible');
-                document.getElementById('clientForm').reset();
-                document.body.style.overflow = '';
-            }, 300);
-        }
-
-        // Ouvrir la modale trajet
-        function openTrajetModal() {
-            const modal = document.getElementById('trajetModal');
-            const modalContent = document.getElementById('trajetModalContent');
-            modal.classList.remove('opacity-0', 'invisible');
-            modal.classList.add('opacity-100', 'visible');
-            setTimeout(() => {
-                modalContent.classList.remove('-translate-y-full', 'scale-95');
-                modalContent.classList.add('translate-y-0', 'scale-100');
-                document.getElementById('modal_camion_id')?.focus();
-            }, 10);
-            document.body.style.overflow = 'hidden';
-        }
-
-        // Fermer la modale trajet
-        function closeTrajetModal() {
-            const modal = document.getElementById('trajetModal');
-            const modalContent = document.getElementById('trajetModalContent');
-            modalContent.classList.remove('translate-y-0', 'scale-100');
-            modalContent.classList.add('-translate-y-full', 'scale-95');
-            setTimeout(() => {
-                modal.classList.remove('opacity-100', 'visible');
-                modal.classList.add('opacity-0', 'invisible');
-                document.getElementById('trajetForm').reset();
-                document.body.style.overflow = '';
-            }, 300);
-        }
-
-        // Notifications Toastify
-        function showSuccessMessage(message) {
-            Toastify({
-                text: message,
-                duration: 3000,
-                gravity: 'top',
-                position: 'right',
-                backgroundColor: '#10B981',
-            }).showToast();
-        }
-
-        function showErrorMessage(message) {
-            Toastify({
-                text: message,
-                duration: 5000,
-                gravity: 'top',
-                position: 'right',
-                backgroundColor: '#EF4444',
-            }).showToast();
-        }
-
-        // Fermer les modales avec Escape ou clic extérieur
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                if (document.getElementById('clientModal').classList.contains('opacity-100')) closeClientModal();
-                if (document.getElementById('trajetModal').classList.contains('opacity-100')) closeTrajetModal();
+        // === FERMER LES MODALES ===
+        document.addEventListener('click', function(e) {
+            if (e.target.id === 'clientModal') {
+                closeClientModal();
+            }
+            if (e.target.id === 'trajetModal') {
+                closeTrajetModal();
             }
         });
 
-        document.addEventListener('click', function(e) {
-            if (e.target.id === 'clientModal') closeClientModal();
-            if (e.target.id === 'trajetModal') closeTrajetModal();
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const clientModal = document.getElementById('clientModal');
+                const trajetModal = document.getElementById('trajetModal');
+                if (clientModal.classList.contains('opacity-100')) {
+                    closeClientModal();
+                }
+                if (trajetModal.classList.contains('opacity-100')) {
+                    closeTrajetModal();
+                }
+            }
         });
 
-        // Initialiser le formulaire en mode édition
+        // === INITIALISATION EN MODE ÉDITION ===
         @if(isset($marchandise))
             document.querySelectorAll('.marchandise-block [name]').forEach(input => {
                 input.name = input.name.replace(/marchandises\[0\]\[(\w+)\]/, '$1');

@@ -2,31 +2,25 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Marchandise extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'trajet_id', 'client_id', 'description', 'poids_kg', 'volume_m3',
-        'valeur_estimee', 'lieu_livraison', 'statut'
+        'nom',
+        'reference',
+        'categorie',
+        'unite',
+        'poids_moyen',
+        'tarif_par_defaut',
     ];
 
-    public function trajet()
-    {
-        return $this->belongsTo(Trajet::class);
-    }
+    // Une marchandise peut être transportée plusieurs fois
+  public function transports() {
 
-    public function client()
-    {
-        return $this->belongsTo(Client::class);
-    }
-
-    public function revenus()
-    {
-        return $this->hasMany(Revenu::class);
-    }
+    return $this->hasMany(MarchandiseTransportee::class, 'marchandise_id');
 }
-
+}

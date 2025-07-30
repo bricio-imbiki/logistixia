@@ -69,10 +69,8 @@ class TrajetController extends Controller
 
     public function ajaxStore(Request $request)
     {
-        $validated = $request->validate([
-            'itineraire_id' => 'required|exists:itineraires,id',
-            'date_depart' => 'required|date',
-        ]);
+         $validated = $this->validateTrajet($request);
+
 
         $trajet = Trajet::create($validated);
 
