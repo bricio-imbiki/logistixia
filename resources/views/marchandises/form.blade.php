@@ -222,14 +222,14 @@
     @include('modals.trajet-create')
 
     <script>
-        let marchandiseIndex = 1;
+        let marchandiseIndex = {{ isset($marchandise) ? 1 : 1 }};
 
         // Ajouter un nouveau bloc de marchandise
         function addMarchandiseBlock() {
             const container = document.getElementById('marchandisesContainer');
             const template = container.querySelector('.marchandise-block').cloneNode(true);
             template.dataset.index = marchandiseIndex;
-            template.querySelector('h3').textContent = `Marchandise ${marchandiseIndex + 1}`;
+            template.querySelector('h3').textContent = `{{ __('Marchandise') }} ${marchandiseIndex + 1}`;
 
             // Mettre à jour les noms des champs
             template.querySelectorAll('[name]').forEach(input => {
@@ -260,7 +260,7 @@
             if (document.querySelectorAll('.marchandise-block').length > 1) {
                 btn.closest('.marchandise-block').remove();
             } else {
-                showErrorMessage('Vous devez conserver au moins une marchandise.');
+                showErrorMessage('{{ __('Vous devez conserver au moins une marchandise.') }}');
             }
         }
 
@@ -278,14 +278,14 @@
         }
 
         // Validation du formulaire avant soumission
-        document.getElementById('marchandiseForm').addEventListener('submit', function(e) {
+        function validateForm() {
             let hasErrors = false;
             const clientSelect = document.getElementById('client_id');
             if (!clientSelect.value) {
                 clientSelect.classList.add('border-red-500');
                 const errorDiv = clientSelect.parentElement.nextElementSibling || document.createElement('p');
                 errorDiv.className = 'text-red-600 text-xs mt-1';
-                errorDiv.textContent = 'Veuillez sélectionner un client.';
+                errorDiv.textContent = '{{ __('Veuillez sélectionner un client.') }}';
                 clientSelect.parentElement.parentElement.appendChild(errorDiv);
                 hasErrors = true;
             } else {
@@ -299,7 +299,7 @@
                     select.classList.add('border-red-500');
                     const errorDiv = select.parentElement.nextElementSibling || document.createElement('p');
                     errorDiv.className = 'text-red-600 text-xs mt-1';
-                    errorDiv.textContent = 'Veuillez sélectionner un trajet.';
+                    errorDiv.textContent = '{{ __('Veuillez sélectionner un trajet.') }}';
                     select.parentElement.parentElement.appendChild(errorDiv);
                     hasErrors = true;
                 } else {
@@ -309,11 +309,88 @@
                 }
             });
 
-            if (hasErrors) {
-                e.preventDefault();
-                showErrorMessage('Veuillez corriger les erreurs avant de soumettre.');
+            document.querySelectorAll('input[type="number"]').forEach(input => {
+                const value = parseFloat(input.value);
+                const errorDiv = input.nextElementSibling;
+                if (value < 0) {
+                    errorDiv.classList.remove('hidden');
+                    input.classList.add('border-red-500');
+                    hasErrors = true;
+                } else {
+                    errorDiv.classList.add('hidden');
+                    input.classList.remove('border-red-500');
+                }
+            });
+
+            return !hasErrors;
+        }
+
+        // Soumission du formulaire via AJAX
+        function submitForm(e) {
+            e.preventDefault();
+            if (!validateForm()) {
+                showErrorMessage('{{ __('Veuillez corriger les erreurs avant de soumettre.') }}');
+                return;
             }
-        });
+
+            const form = document.getElementById('marchandiseForm');
+            const submitBtn = document.getElementById('submitButton');
+            const originalContent = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.querySelector('.submit-text').classList.add('hidden');
+            submitBtn.querySelector('.loading-text').classList.remove('hidden');
+
+            const formData = new FormData(form);
+            @if(isset($marchandise))
+                // En mode édition, ajuster les noms des champs pour correspondre à la validation
+                formData.delete('_method');
+                formData.append('_method', 'PUT');
+                form.querySelectorAll('.marchandise-block [name]').forEach(input => {
+                    const name = input.name.replace(/marchandises\[0\]\[(\w+)\]/, '$1');
+                    formData.set(name, input.value);
+                    formData.delete(input.name);
+                });
+            @endif
+
+            fetch(form.action, {
+                method: '{{ isset($marchandise) ? 'PUT' : 'POST' }}',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                },
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    if (response.status === 422) {
+                        return response.json().then(data => {
+                            throw new Error(Object.values(data.errors).flat().join(' '));
+                        });
+                    }
+                    throw new Error('Erreur réseau');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    showSuccessMessage(data.message || '{{ isset($marchandise) ? __('Marchandise mise à jour avec succès.') : __('Marchandises ajoutées avec succès.') }}');
+                    setTimeout(() => {
+                        window.location.href = '{{ route('marchandises.index') }}';
+                    }, 1500);
+                } else {
+                    throw new Error(data.message || '{{ __('Erreur lors de la soumission.') }}');
+                }
+            })
+            .catch(error => {
+                showErrorMessage('Erreur: ' + error.message);
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.querySelector('.submit-text').classList.remove('hidden');
+                submitBtn.querySelector('.loading-text').classList.add('hidden');
+                submitBtn.innerHTML = originalContent;
+            });
+        }
 
         // Ouvrir la modale client
         function openClientModal() {
@@ -371,108 +448,24 @@
             }, 300);
         }
 
-        // Soumission formulaire Client
-        document.getElementById('clientForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            const submitBtn = document.getElementById('clientSubmitBtn');
-            const originalContent = submitBtn.innerHTML;
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<svg class="w-5 h-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Enregistrement...';
-
-            fetch('{{ route('clients.store.ajax') }}', {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': formData.get('_token'),
-                    'Accept': 'application/json'
-                },
-                body: formData
-            })
-            .then(response => {
-                if (!response.ok) throw new Error('Erreur réseau');
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    const select = document.getElementById('client_id');
-                    const option = new Option(data.client.raison_sociale, data.client.id, true, true);
-                    select.appendChild(option);
-                    closeClientModal();
-                    showSuccessMessage('Client ajouté avec succès');
-                } else {
-                    throw new Error(data.message || 'Erreur lors de l\'ajout du client');
-                }
-            })
-            .catch(error => {
-                showErrorMessage('Erreur: ' + error.message);
-            })
-            .finally(() => {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = originalContent;
-            });
-        });
-
-        // Soumission formulaire Trajet
-        document.getElementById('trajetForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            const submitBtn = document.getElementById('trajetSubmitBtn');
-            const originalContent = submitBtn.innerHTML;
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<svg class="w-5 h-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Enregistrement...';
-
-            fetch('{{ route('trajets.store.ajax') }}', {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': formData.get('_token'),
-                    'Accept': 'application/json'
-                },
-                body: formData
-            })
-            .then(response => {
-                if (!response.ok) throw new Error('Erreur réseau');
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    document.querySelectorAll('select[name$="[trajet_id]"]').forEach(select => {
-                        const optionText = `${data.trajet.lieu_depart} → ${data.trajet.lieu_arrivee} (${data.trajet.date_depart})`;
-                        const option = new Option(optionText, data.trajet.id, false, false);
-                        select.appendChild(option);
-                    });
-                    closeTrajetModal();
-                    showSuccessMessage('Trajet ajouté avec succès');
-                } else {
-                    throw new Error(data.message || 'Erreur lors de l\'ajout du trajet');
-                }
-            })
-            .catch(error => {
-                showErrorMessage('Erreur: ' + error.message);
-            })
-            .finally(() => {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = originalContent;
-            });
-        });
-
         // Notifications Toastify
         function showSuccessMessage(message) {
             Toastify({
                 text: message,
                 duration: 3000,
-                gravity: "top",
-                position: "right",
-                backgroundColor: "#10B981",
+                gravity: 'top',
+                position: 'right',
+                backgroundColor: '#10B981',
             }).showToast();
         }
 
         function showErrorMessage(message) {
             Toastify({
                 text: message,
-                duration: 3000,
-                gravity: "top",
-                position: "right",
-                backgroundColor: "#EF4444",
+                duration: 5000,
+                gravity: 'top',
+                position: 'right',
+                backgroundColor: '#EF4444',
             }).showToast();
         }
 
@@ -491,9 +484,10 @@
 
         // Initialiser le formulaire en mode édition
         @if(isset($marchandise))
-            document.querySelectorAll('.marchandise-block input, .marchandise-block textarea, .marchandise-block select').forEach(input => {
+            document.querySelectorAll('.marchandise-block [name]').forEach(input => {
                 input.name = input.name.replace(/marchandises\[0\]\[(\w+)\]/, '$1');
             });
+            document.querySelector('button[onclick="addMarchandiseBlock()"]').remove();
         @endif
     </script>
 </x-layouts.app>

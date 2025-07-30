@@ -10,6 +10,7 @@ use App\Models\Itineraire;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Exception;
+use Illuminate\Database\QueryException;
 
 class TrajetController extends Controller
 {
@@ -65,7 +66,8 @@ class TrajetController extends Controller
             return back()->withInput()->withErrors(['error' => 'Erreur lors de l’ajout du trajet : ' . $e->getMessage()]);
         }
     }
- public function ajaxStore(Request $request)
+
+    public function ajaxStore(Request $request)
     {
         $validated = $request->validate([
             'itineraire_id' => 'required|exists:itineraires,id',
@@ -111,14 +113,42 @@ class TrajetController extends Controller
         }
     }
 
-    public function destroy(Trajet $trajet)
+    public function destroy(Trajet $trajet, Request $request)
     {
         try {
+            // Fallback: Explicitly delete marchandises if cascade is not set
+            if ($trajet->marchandises()->count() > 0) {
+                $trajet->marchandises()->delete();
+            }
             $trajet->delete();
 
-            return redirect()->route('trajets.index')->with('success', 'Trajet supprimé avec succès.');
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Trajet et marchandises associées supprimés avec succès.'
+                ], 200);
+            }
+
+            return redirect()->route('trajets.index')->with('success', 'Trajet et marchandises associées supprimés avec succès.');
+        } catch (QueryException $e) {
+            $message = 'Impossible de supprimer le trajet car il est lié à des marchandises ou d’autres données. Consultez la liste des marchandises pour plus de détails.';
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $message
+                ], 422);
+            }
+            return back()->withErrors(['error' => $message]);
         } catch (Exception $e) {
-            return back()->withErrors(['error' => 'Erreur lors de la suppression : ' . $e->getMessage()]);
+            $message = 'Erreur lors de la suppression : ' . $e->getMessage();
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $message
+                ], 500);
+            }
+            return back()->withErrors(['error' => $message]);
         }
     }
 }
+

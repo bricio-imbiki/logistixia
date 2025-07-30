@@ -15,7 +15,7 @@
             class="transition-opacity duration-300">{{ $slot }}</span>
     </a>
 </li>
-<script>
+{{-- <script>
     // Update link text visibility based on sidebar state
     function updateSidebarLinks() {
         const sidebar = document.getElementById('sidebar');
@@ -50,7 +50,7 @@
             });
         });
     });
-</script>
+</script> --}}
 
 <style>
     .sidebar-link .link-text {

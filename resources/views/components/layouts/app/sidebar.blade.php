@@ -161,7 +161,7 @@
         }
     </style>
 
-    <script>
+    {{-- <script>
         // Sidebar Toggle
         const sidebar = document.getElementById('sidebar');
         const toggleButton = document.getElementById('toggle-sidebar');
@@ -217,7 +217,7 @@
 
         // Initialize Sidebar State
         updateSidebar();
-    </script>
+    </script> --}}
      </aside>
 
 

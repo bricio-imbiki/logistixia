@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('marchandises', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('trajet_id')->constrained('trajets');
-            $table->foreignId('client_id')->constrained('clients');
+            $table->foreignId('trajet_id')->constrained('trajets')->onDelete('cascade');
+            $table->foreignId('client_id')->constrained('clients')->onDelete('cascade');;
             $table->text('description')->nullable();
             $table->decimal('poids_kg', 10, 2)->nullable();
             $table->decimal('volume_m3', 10, 2)->nullable();

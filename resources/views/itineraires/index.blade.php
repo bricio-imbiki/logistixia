@@ -20,11 +20,6 @@
             </a>
         </div>
 
-        @if(session('success'))
-            <div class="mb-4 px-4 py-2 bg-green-100 text-green-800 rounded shadow">
-                {{ session('success') }}
-            </div>
-        @endif
 
         <form method="GET" action="{{ route('itineraires.index') }}" class="mb-4">
             <input type="text" name="search" value="{{ request('search') }}"
