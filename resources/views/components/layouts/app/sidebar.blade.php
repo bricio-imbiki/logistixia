@@ -44,8 +44,8 @@
                      </x-layouts.sidebar-link>
 
                         <!-- Commandes -->
-                        <x-layouts.sidebar-link href="{{ route('marchandise-transportee.index') }}" icon="fas-clipboard-list"
-                            :active="request()->routeIs('marchandise-transportee*')">
+                        <x-layouts.sidebar-link href="{{ route('transports.index') }}" icon="fas-clipboard-list"
+                            :active="request()->routeIs('transport*')">
                             Commandes
                         </x-layouts.sidebar-link>
                      <!-- Carburant -->

@@ -34,8 +34,9 @@ class Trajet extends Model
         return $this->belongsTo(Itineraire::class);
     }
 
- public function marchandisesTransportees() {
-    return $this->hasMany(MarchandiseTransportee::class, 'trajet_id');
+ public function Transports() {
+
+    return $this->hasMany(Transport::class);
 }
     public function depenses()
     {

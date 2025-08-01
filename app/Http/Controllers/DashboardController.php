@@ -6,8 +6,8 @@ use App\Models\Camion;
 use App\Models\Chauffeur;
 use App\Models\Trajet;
 use App\Models\Depense;
-use App\Models\Marchandise;
 use App\Models\Revenu;
+use App\Models\Transport;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -15,47 +15,47 @@ use Illuminate\Support\Facades\Log;
 class DashboardController extends Controller
 {
     /**
-     * Display the dashboard with logistics statistics.
+     * Affiche les statistiques logistiques du tableau de bord.
      */
     public function index(Request $request)
     {
-        // Date range filter (default: last 30 days)
+        // Définir la plage de dates (par défaut : 30 derniers jours)
         $startDate = $request->query('start_date', Carbon::today()->subDays(30)->toDateString());
         $endDate = $request->query('end_date', Carbon::today()->toDateString());
 
-        // Validate dates
+        // Validation de la plage de dates
         try {
             $start = Carbon::parse($startDate)->startOfDay();
             $end = Carbon::parse($endDate)->endOfDay();
         } catch (\Exception $e) {
-            Log::warning('Invalid date range provided: ' . $e->getMessage());
+            Log::warning('Plage de dates invalide : ' . $e->getMessage());
             $start = Carbon::today()->subDays(30)->startOfDay();
             $end = Carbon::today()->endOfDay();
             $startDate = $start->toDateString();
             $endDate = $end->toDateString();
         }
 
-        // Statistics
+          // Statistics
         $stats = [
             'total_camions' => Camion::count(),
             'total_chauffeurs' => Chauffeur::count(),
             'total_revenue' => Trajet::whereBetween('date_depart', [$start, $end])
-                ->join('marchandises', 'trajets.id', '=', 'marchandises.trajet_id')
-                ->where('marchandises.statut', 'livree')
-                ->sum('marchandises.valeur_estimee'),
+                ->join('transports', 'trajets.id', '=', 'transports.trajet_id')
+                ->where('transports.statut', 'livree')
+                ->sum('transports.valeur_estimee'),
 
             'total_depenses' => Depense::whereBetween('dep_date', [$start, $end])->sum('montant'),
             'trips_by_status' => [
-                'chargee' => Marchandise::where('statut', 'chargee')
+                'chargee' => Transport::where('statut', 'chargee')
                     ->whereHas('trajet', fn($q) => $q->whereBetween('date_depart', [$start, $end]))
                     ->count(),
-                'en_transit' => Marchandise::where('statut', 'en_transit')
+                'en_transit' => Transport::where('statut', 'en_transit')
                     ->whereHas('trajet', fn($q) => $q->whereBetween('date_depart', [$start, $end]))
                     ->count(),
-                'livree' => Marchandise::where('statut', 'livree')
+                'livree' => Transport::where('statut', 'livree')
                     ->whereHas('trajet', fn($q) => $q->whereBetween('date_depart', [$start, $end]))
                     ->count(),
-                'retour' => Marchandise::where('statut', 'retour')
+                'retour' => Transport::where('statut', 'retour')
                     ->whereHas('trajet', fn($q) => $q->whereBetween('date_depart', [$start, $end]))
                     ->count(),
             ],
@@ -65,7 +65,7 @@ class DashboardController extends Controller
         ];
 
         // Recent activities (last 5 trips)
-        $recent_activities = Trajet::with(['marchandises', 'chauffeur', 'camion', 'itineraire'])
+        $recent_activities = Trajet::with(['transports', 'chauffeur', 'camion', 'itineraire'])
             ->whereBetween('date_depart', [$start, $end])
             ->orderBy('date_depart', 'desc')
             ->take(5)
@@ -76,12 +76,13 @@ class DashboardController extends Controller
             'revenue' => [],
             'labels' => [],
         ];
+
         $current = $start->copy();
         while ($current <= $end) {
             $chart_data['labels'][] = $current->format('d/m');
             $chart_data['revenue'][] = Revenu::whereDate('date_encaisse', $current)
-                ->join('marchandises', 'revenus.marchandise_id', '=', 'marchandises.id')
-                ->where('marchandises.statut', 'livree')
+                ->join('transports', 'revenus.transport_id', '=', 'transports.id')
+                ->where('transports.statut', 'livree')
                 ->sum('revenus.montant');
             $current->addDay();
         }
@@ -91,29 +92,77 @@ class DashboardController extends Controller
             'expenses' => [],
             'labels' => [],
         ];
+        // $current = $start->copy()->startOfMonth();
+        // while ($current <= $end) {
+        //     $expense_data['labels'][] = $current->format('M Y');
+        //     $expense_data['expenses'][] = Depense::whereMonth('dep_date', $current->month)
+        //         ->whereYear('dep_date', $current->year)
+        //         ->sum('montant');
+        //     $current->addMonth();
+        // }
+
+
+        // Données pour le graphique des dépenses mensuelles
+        // $expense_data = [
+        //     'labels' => [],
+        //     'expenses' => [],
+        // ];
         $current = $start->copy()->startOfMonth();
         while ($current <= $end) {
             $expense_data['labels'][] = $current->format('M Y');
-            $expense_data['expenses'][] = Depense::whereMonth('dep_date', $current->month)
-                ->whereYear('dep_date', $current->year)
-                ->sum('montant');
+            $expense_data['expenses'][] = Depense::whereBetween('dep_date', [
+                $current->copy()->startOfMonth(),
+                $current->copy()->endOfMonth()
+            ])->sum('montant');
             $current->addMonth();
         }
 
+        // Camions actifs et leurs statuts
+        $trucks = Camion::with([
+                'trajets.chauffeur',
+                'trajets.itineraire',
+                'trajets.transports'
+            ])
+            ->whereHas('trajets', fn($q) => $q->whereBetween('date_depart', [$start, $end]))
+            ->get()
+            ->map(function ($camion) {
+                $latest_trajet = $camion->trajets->sortByDesc('date_depart')->first();
+                return [
+                    'accreditation' => $camion->accreditation,
+                    'chauffeur' => $latest_trajet?->chauffeur,
+                    'status' => $latest_trajet?->transport->first()?->statut ?? 'unknown',
+                    'latitude' => $latest_trajet?->itineraire?->latitude_arrivee ?? -18.1492,
+                    'longitude' => $latest_trajet?->itineraire?->longitude_arrivee ?? 49.40234,
+                    'last_updated' => $latest_trajet?->updated_at?->toDateTimeString() ?? now()->toDateTimeString(),
+                ];
+            })->toArray();
+
+        // En cas de requête AJAX (ex : pour Livewire, Vue, React, etc.)
         if ($request->ajax()) {
-            return response()->json(compact('stats', 'recent_activities', 'chart_data', 'expense_data', 'startDate', 'endDate'));
+            return response()->json(compact(
+                'stats',
+                'recent_activities',
+                'chart_data',
+                'expense_data',
+                'startDate',
+                'endDate',
+                'trucks'
+            ));
         }
 
-        return view('dashboard.index', compact('stats', 'recent_activities', 'chart_data', 'expense_data', 'startDate', 'endDate'));
+        // Sinon, on retourne la vue blade avec toutes les données
+        return view('dashboard.index', compact(
+            'stats',
+            'recent_activities',
+            'chart_data',
+            'expense_data',
+            'startDate',
+            'endDate',
+            'trucks'
+        ));
     }
 
-  // 'total_revenue' => Revenu::whereBetween('date_encaisse', [$start, $end])
-            //     ->join('marchandises', 'revenus.marchandise_id', '=', 'marchandises.id')
-            //     ->where('marchandises.statut', 'livree')
-            //     ->sum('revenus.montant'),
-
-
-    // public function index(Request $request)
+    //   public function index(Request $request)
     // {
     //     // Date range filter (default: last 30 days)
     //     $startDate = $request->query('start_date', Carbon::today()->subDays(30)->toDateString());
@@ -136,30 +185,32 @@ class DashboardController extends Controller
     //         'total_camions' => Camion::count(),
     //         'total_chauffeurs' => Chauffeur::count(),
     //         'total_revenue' => Trajet::whereBetween('date_depart', [$start, $end])
-    //             ->join('marchandises', 'trajets.id', '=', 'marchandises.trajet_id')
-    //             ->where('marchandises.statut', 'livree')
-    //             ->sum('marchandises.valeur_estimee'),
+    //             ->join('transports', 'trajets.id', '=', 'transports.trajet_id')
+    //             ->where('transports.statut', 'livree')
+    //             ->sum('transports.valeur_estimee'),
+
     //         'total_depenses' => Depense::whereBetween('dep_date', [$start, $end])->sum('montant'),
     //         'trips_by_status' => [
-    //             'chargee' => Marchandise::where('statut', 'chargee')
+    //             'chargee' => Transport::where('statut', 'chargee')
     //                 ->whereHas('trajet', fn($q) => $q->whereBetween('date_depart', [$start, $end]))
     //                 ->count(),
-    //             'en_transit' => Marchandise::where('statut', 'en_transit')
+    //             'en_transit' => Transport::where('statut', 'en_transit')
     //                 ->whereHas('trajet', fn($q) => $q->whereBetween('date_depart', [$start, $end]))
     //                 ->count(),
-    //             'livree' => Marchandise::where('statut', 'livree')
+    //             'livree' => Transport::where('statut', 'livree')
     //                 ->whereHas('trajet', fn($q) => $q->whereBetween('date_depart', [$start, $end]))
     //                 ->count(),
-    //             'retour' => Marchandise::where('statut', 'retour')
+    //             'retour' => Transport::where('statut', 'retour')
     //                 ->whereHas('trajet', fn($q) => $q->whereBetween('date_depart', [$start, $end]))
     //                 ->count(),
     //         ],
     //         'active_trucks' => Camion::whereHas('trajets', fn($q) => $q->whereBetween('date_depart', [$start, $end]))->count(),
     //         'active_drivers' => Chauffeur::whereHas('trajets', fn($q) => $q->whereBetween('date_depart', [$start, $end]))->count(),
+    //         'total_trips' => Trajet::whereBetween('date_depart', [$start, $end])->count(),
     //     ];
 
     //     // Recent activities (last 5 trips)
-    //     $recent_activities = Trajet::with(['marchandises', 'chauffeur', 'camion', 'itineraire'])
+    //     $recent_activities = Trajet::with(['transports', 'chauffeur', 'camion', 'itineraire'])
     //         ->whereBetween('date_depart', [$start, $end])
     //         ->orderBy('date_depart', 'desc')
     //         ->take(5)
@@ -170,13 +221,14 @@ class DashboardController extends Controller
     //         'revenue' => [],
     //         'labels' => [],
     //     ];
+
     //     $current = $start->copy();
     //     while ($current <= $end) {
     //         $chart_data['labels'][] = $current->format('d/m');
-    //         $chart_data['revenue'][] = Trajet::whereDate('date_depart', $current)
-    //             ->join('marchandises', 'trajets.id', '=', 'marchandises.trajet_id')
-    //             ->where('marchandises.statut', 'livree')
-    //             ->sum('marchandises.valeur_estimee');
+    //         $chart_data['revenue'][] = Revenu::whereDate('date_encaisse', $current)
+    //             ->join('transports', 'revenus.transport_id', '=', 'transports.id')
+    //             ->where('transports.statut', 'livree')
+    //             ->sum('revenus.montant');
     //         $current->addDay();
     //     }
 
@@ -188,8 +240,8 @@ class DashboardController extends Controller
     //     $current = $start->copy()->startOfMonth();
     //     while ($current <= $end) {
     //         $expense_data['labels'][] = $current->format('M Y');
-    //         $expense_data['expenses'][] = Depense::whereMonth('date', $current->month)
-    //             ->whereYear('date', $current->year)
+    //         $expense_data['expenses'][] = Depense::whereMonth('dep_date', $current->month)
+    //             ->whereYear('dep_date', $current->year)
     //             ->sum('montant');
     //         $current->addMonth();
     //     }
@@ -201,51 +253,4 @@ class DashboardController extends Controller
     //     return view('dashboard.index', compact('stats', 'recent_activities', 'chart_data', 'expense_data', 'startDate', 'endDate'));
     // }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
-    }
 }

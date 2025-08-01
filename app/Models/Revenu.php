@@ -10,7 +10,7 @@ class Revenu extends Model
     use HasFactory;
 
     protected $fillable = [
-        'marchandise_transportee_id',
+        'transport_id',
         'montant',
         'date_encaisse',
         'notes',
@@ -21,7 +21,7 @@ class Revenu extends Model
      */
  public function transport()
 {
-    return $this->belongsTo(MarchandiseTransportee::class);
+    return $this->belongsTo(Transport::class);
 }
 
     /**

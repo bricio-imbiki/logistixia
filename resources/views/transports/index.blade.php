@@ -1,4 +1,5 @@
-{{-- <!-- resources/views/marchandises/index.blade.php -->
+<!-- resources/views/marchandises-transportees/index.blade.php -->
+
 <x-layouts.app>
     <!-- Toastify pour notifications -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css" />
@@ -16,11 +17,11 @@
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
                 <x-heroicon-o-archive-box class="w-6 h-6 text-blue-600" aria-hidden="true" />
-                <span>Gestion des marchandises</span>
+                <span>Gestion des marchandises transportées</span>
             </h2>
-            <a href="{{ route('marchandises.create') }}"
+            <a href="{{ route('transports.create') }}"
                class="no-underline inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg shadow transition"
-               aria-label="Ajouter une nouvelle marchandise">
+               aria-label="Ajouter une nouvelle marchandise transportée">
                 <x-heroicon-o-plus class="w-5 h-5" aria-hidden="true" />
                 Ajouter
             </a>
@@ -63,13 +64,13 @@
         </div>
 
         <!-- Barre de recherche et filtres -->
-        <form method="GET" action="{{ route('marchandises.index') }}" class="mb-6 flex flex-col md:flex-row gap-4" id="filterForm">
+        <form method="GET" action="{{ route('transports.index') }}" class="mb-6 flex flex-col md:flex-row gap-4" id="filterForm">
             <div class="relative w-full md:w-1/3">
                 <x-heroicon-o-magnifying-glass class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" aria-hidden="true" />
                 <input type="text" name="search" id="searchInput" value="{{ request('search') }}"
-                       placeholder="Rechercher par description, lieu..."
+                       placeholder="Rechercher par nom, lieu..."
                        class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring focus:ring-blue-200 focus:outline-none"
-                       aria-label="Rechercher des marchandises">
+                       aria-label="Rechercher des marchandises transportées">
                 <div id="loadingSpinner" class="absolute right-3 top-1/2 transform -translate-y-1/2 hidden">
                     <svg class="w-5 h-5 animate-spin text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -105,8 +106,8 @@
             <table class="w-full table-auto border-collapse text-sm text-gray-700" id="marchandisesTable">
                 <thead>
                     <tr class="bg-gray-100 text-gray-600 uppercase text-left">
-                        <th class="px-4 py-2 cursor-pointer" onclick="sortTable('description', this)" data-sort="description" data-order="asc">
-                            Description
+                        <th class="px-4 py-2 cursor-pointer" onclick="sortTable('nom', this)" data-sort="nom" data-order="asc">
+                            Nom
                             <x-heroicon-o-arrows-up-down class="w-4 h-4 inline ml-1" aria-hidden="true" />
                         </th>
                         <th class="px-4 py-2 cursor-pointer" onclick="sortTable('client', this)" data-sort="client" data-order="asc">
@@ -145,7 +146,7 @@
                         <tr class="border-b hover:bg-gray-50 transition duration-200 cursor-pointer"
                             onclick="highlightRow(this)"
                             data-id="{{ $marchandise->id }}"
-                            data-description="{{ Str::limit($marchandise->description ?? '-', 40) }}"
+                            data-nom="{{ $marchandise->marchandise->nom ?? '-' }}"
                             data-client="{{ $marchandise->client->raison_sociale ?? '-' }}"
                             data-trajet="{{ $marchandise->trajet && $marchandise->trajet->itineraire ? $marchandise->trajet->itineraire->lieu_depart . ' → ' . $marchandise->trajet->itineraire->lieu_arrivee . ' (' . \Carbon\Carbon::parse($marchandise->trajet->date_depart)->format('d/m/Y') . ')' : '-' }}"
                             data-poids_kg="{{ $marchandise->poids_kg ?? '-' }}"
@@ -155,7 +156,7 @@
                             data-statut="{{ $marchandise->statut ?? '-' }}"
                             data-client_id="{{ $marchandise->client_id ?? '' }}"
                             role="row">
-                            <td class="px-4 py-2 text-left">{{ Str::limit($marchandise->description ?? '-', 40) }}</td>
+                            <td class="px-4 py-2 text-left">{{ $marchandise->marchandise->nom ?? '-' }}</td>
                             <td class="px-4 py-2 text-left">{{ $marchandise->client->raison_sociale ?? '-' }}</td>
                             <td class="px-4 py-2 text-left">
                                 @if ($marchandise->trajet && $marchandise->trajet->itineraire)
@@ -182,14 +183,14 @@
                             </td>
                             <td class="px-4 py-2">
                                 <div class="flex items-center justify-center gap-2">
-                                    <a href="{{ route('marchandises.edit', $marchandise->id) }}"
+                                    <a href="{{ route('marchandises-transportees.edit', $marchandise->id) }}"
                                        class="text-blue-600 hover:text-blue-800 transition"
-                                       title="Modifier la marchandise" aria-label="Modifier la marchandise">
+                                       title="Modifier la marchandise transportée" aria-label="Modifier la marchandise transportée">
                                         <x-heroicon-o-pencil class="w-5 h-5" aria-hidden="true" />
                                     </a>
                                     <button onclick="openDeleteModal({{ $marchandise->id }})"
                                             class="text-red-600 hover:text-red-800 transition"
-                                            title="Supprimer la marchandise" aria-label="Supprimer la marchandise">
+                                            title="Supprimer la marchandise transportée" aria-label="Supprimer la marchandise transportée">
                                         <x-heroicon-o-trash class="w-5 h-5" aria-hidden="true" />
                                     </button>
                                 </div>
@@ -197,7 +198,7 @@
                         </tr>
                     @empty
                         <tr class="no-results">
-                            <td colspan="9" class="text-center py-6 text-gray-500">Aucune marchandise trouvée.</td>
+                            <td colspan="9" class="text-center py-6 text-gray-500">Aucune marchandise transportée trouvée.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -207,70 +208,75 @@
         <!-- Vue groupée par client -->
         <div id="groupedView" class="space-y-4 hidden">
             @foreach ($clients as $client)
-                <div class="bg-gray-50 p-4 rounded-lg shadow">
-                    <h3 class="text-lg font-semibold">{{ $client->raison_sociale }}</h3>
-                    <table class="w-full table-auto border-collapse text-sm text-gray-700 mt-2" data-client_id="{{ $client->id }}">
-                        <thead>
-                            <tr class="bg-gray-100 text-gray-600 uppercase text-left">
-                                <th class="px-4 py-2 cursor-pointer" onclick="sortGroupedTable('description', this, {{ $client->id }})" data-sort="description" data-order="asc">
-                                    Description
-                                    <x-heroicon-o-arrows-up-down class="w-4 h-4 inline ml-1" aria-hidden="true" />
-                                </th>
-                                <th class="px-4 py-2 cursor-pointer" onclick="sortGroupedTable('trajet', this, {{ $client->id }})" data-sort="trajet" data-order="asc">
-                                    Trajet
-                                    <x-heroicon-o-arrows-up-down class="w-4 h-4 inline ml-1" aria-hidden="true" />
-                                </th>
-                                <th class="px-4 py-2 cursor-pointer" onclick="sortGroupedTable('statut', this, {{ $client->id }})" data-sort="statut" data-order="asc">
-                                    Statut
-                                    <x-heroicon-o-arrows-up-down class="w-4 h-4 inline ml-1" aria-hidden="true" />
-                                </th>
-                                <th class="px-4 py-2 text-center">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="client-body" data-client_id="{{ $client->id }}">
-                            @foreach ($client->marchandises as $marchandise)
-                                <tr class="border-b hover:bg-gray-50 transition duration-200 cursor-pointer"
-                                    onclick="highlightRow(this)"
-                                    data-id="{{ $marchandise->id }}"
-                                    data-description="{{ Str::limit($marchandise->description ?? '-', 40) }}"
-                                    data-trajet="{{ $marchandise->trajet && $marchandise->trajet->itineraire ? $marchandise->trajet->itineraire->lieu_depart . ' → ' . $marchandise->trajet->itineraire->lieu_arrivee : '-' }}"
-                                    data-statut="{{ $marchandise->statut ?? '-' }}"
-                                    data-client_id="{{ $marchandise->client_id ?? '' }}"
-                                    role="row">
-                                    <td class="px-4 py-2">{{ Str::limit($marchandise->description ?? '-', 40) }}</td>
-                                    <td class="px-4 py-2">
-                                        {{ $marchandise->trajet?->itineraire->lieu_depart ?? '-' }} →
-                                        {{ $marchandise->trajet?->itineraire->lieu_arrivee ?? '-' }}
-                                    </td>
-                                    <td class="px-4 py-2">
-                                        <span @class([
-                                            'bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-semibold' => $marchandise->statut === 'chargee',
-                                            'bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-semibold' => $marchandise->statut === 'en_transit',
-                                            'bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-semibold' => $marchandise->statut === 'livree',
-                                            'bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-semibold' => $marchandise->statut === 'retour',
-                                        ])>
-                                            {{ ucfirst(str_replace('_', ' ', $marchandise->statut)) }}
-                                        </span>
-                                    </td>
-                                    <td class="px-4 py-2">
-                                        <div class="flex items-center justify-center gap-2">
-                                            <a href="{{ route('marchandises.edit', $marchandise->id) }}"
-                                               class="text-blue-600 hover:text-blue-800 transition"
-                                               title="Modifier la marchandise" aria-label="Modifier la marchandise">
-                                                <x-heroicon-o-pencil class="w-5 h-5" aria-hidden="true" />
-                                            </a>
-                                            <button onclick="openDeleteModal({{ $marchandise->id }})"
-                                                    class="text-red-600 hover:text-red-800 transition"
-                                                    title="Supprimer la marchandise" aria-label="Supprimer la marchandise">
-                                                <x-heroicon-o-trash class="w-5 h-5" aria-hidden="true" />
-                                            </button>
-                                        </div>
-                                    </td>
+                @php
+                    $clientMarchandises = $marchandises->where('client_id', $client->id);
+                @endphp
+                @if ($clientMarchandises->isNotEmpty())
+                    <div class="bg-gray-50 p-4 rounded-lg shadow">
+                        <h3 class="text-lg font-semibold">{{ $client->raison_sociale }}</h3>
+                        <table class="w-full table-auto border-collapse text-sm text-gray-700 mt-2" data-client_id="{{ $client->id }}">
+                            <thead>
+                                <tr class="bg-gray-100 text-gray-600 uppercase text-left">
+                                    <th class="px-4 py-2 cursor-pointer" onclick="sortGroupedTable('nom', this, {{ $client->id }})" data-sort="nom" data-order="asc">
+                                        Nom
+                                        <x-heroicon-o-arrows-up-down class="w-4 h-4 inline ml-1" aria-hidden="true" />
+                                    </th>
+                                    <th class="px-4 py-2 cursor-pointer" onclick="sortGroupedTable('trajet', this, {{ $client->id }})" data-sort="trajet" data-order="asc">
+                                        Trajet
+                                        <x-heroicon-o-arrows-up-down class="w-4 h-4 inline ml-1" aria-hidden="true" />
+                                    </th>
+                                    <th class="px-4 py-2 cursor-pointer" onclick="sortGroupedTable('statut', this, {{ $client->id }})" data-sort="statut" data-order="asc">
+                                        Statut
+                                        <x-heroicon-o-arrows-up-down class="w-4 h-4 inline ml-1" aria-hidden="true" />
+                                    </th>
+                                    <th class="px-4 py-2 text-center">Actions</th>
                                 </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody class="client-body" data-client_id="{{ $client->id }}">
+                                @foreach ($clientMarchandises as $marchandise)
+                                    <tr class="border-b hover:bg-gray-50 transition duration-200 cursor-pointer"
+                                        onclick="highlightRow(this)"
+                                        data-id="{{ $marchandise->id }}"
+                                        data-nom="{{ $marchandise->marchandise->nom ?? '-' }}"
+                                        data-trajet="{{ $marchandise->trajet && $marchandise->trajet->itineraire ? $marchandise->trajet->itineraire->lieu_depart . ' → ' . $marchandise->trajet->itineraire->lieu_arrivee : '-' }}"
+                                        data-statut="{{ $marchandise->statut ?? '-' }}"
+                                        data-client_id="{{ $marchandise->client_id ?? '' }}"
+                                        role="row">
+                                        <td class="px-4 py-2">{{ $marchandise->marchandise->nom ?? '-' }}</td>
+                                        <td class="px-4 py-2">
+                                            {{ $marchandise->trajet?->itineraire->lieu_depart ?? '-' }} →
+                                            {{ $marchandise->trajet?->itineraire->lieu_arrivee ?? '-' }}
+                                        </td>
+                                        <td class="px-4 py-2">
+                                            <span @class([
+                                                'bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-semibold' => $marchandise->statut === 'chargee',
+                                                'bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-semibold' => $marchandise->statut === 'en_transit',
+                                                'bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-semibold' => $marchandise->statut === 'livree',
+                                                'bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-semibold' => $marchandise->statut === 'retour',
+                                            ])>
+                                                {{ ucfirst(str_replace('_', ' ', $marchandise->statut)) }}
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-2">
+                                            <div class="flex items-center justify-center gap-2">
+                                                <a href="{{ route('marchandises-transportees.edit', $marchandise->id) }}"
+                                                   class="text-blue-600 hover:text-blue-800 transition"
+                                                   title="Modifier la marchandise transportée" aria-label="Modifier la marchandise transportée">
+                                                    <x-heroicon-o-pencil class="w-5 h-5" aria-hidden="true" />
+                                                </a>
+                                                <button onclick="openDeleteModal({{ $marchandise->id }})"
+                                                        class="text-red-600 hover:text-red-800 transition"
+                                                        title="Supprimer la marchandise transportée" aria-label="Supprimer la marchandise transportée">
+                                                    <x-heroicon-o-trash class="w-5 h-5" aria-hidden="true" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
             @endforeach
         </div>
 
@@ -283,7 +289,7 @@
         <div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 transition-opacity duration-300" role="dialog" aria-labelledby="deleteModalTitle">
             <div class="bg-white rounded-lg p-6 max-w-md w-full transform transition-transform duration-300 scale-95">
                 <h3 id="deleteModalTitle" class="text-lg font-semibold mb-4">Confirmer la suppression</h3>
-                <p class="text-gray-600 mb-6">Voulez-vous vraiment supprimer cette marchandise ?</p>
+                <p class="text-gray-600 mb-6">Voulez-vous vraiment supprimer cette marchandise transportée ?</p>
                 <div class="flex justify-end gap-3">
                     <button onclick="closeDeleteModal()"
                             class="px-4 py-2 border rounded text-gray-600 hover:bg-gray-100"
@@ -337,7 +343,6 @@
                 tableBtn.classList.remove('bg-blue-600', 'text-white');
             }
 
-            // Reapply filters after view change
             applyFilters();
         }
 
@@ -359,14 +364,14 @@
             setTimeout(() => {
                 // Filter table view
                 tableRows.forEach(row => {
-                    const description = row.dataset.description.toLowerCase();
+                    const nom = row.dataset.nom.toLowerCase();
                     const client = row.dataset.client.toLowerCase();
                     const trajet = row.dataset.trajet.toLowerCase();
                     const lieu_livraison = row.dataset.lieu_livraison.toLowerCase();
                     const rowStatut = row.dataset.statut.toLowerCase();
                     const rowClientId = row.dataset.client_id;
 
-                    const matchesSearch = !query || description.includes(query) || client.includes(query) || trajet.includes(query) || lieu_livraison.includes(query) || rowStatut.includes(query);
+                    const matchesSearch = !query || nom.includes(query) || client.includes(query) || trajet.includes(query) || lieu_livraison.includes(query) || rowStatut.includes(query);
                     const matchesClient = !clientId || rowClientId === clientId;
                     const matchesStatut = !statut || rowStatut === statut;
 
@@ -378,30 +383,28 @@
                     const rows = Array.from(table.querySelectorAll('tr[data-id]'));
                     const clientIdTable = table.dataset.client_id;
                     rows.forEach(row => {
-                        const description = row.dataset.description.toLowerCase();
+                        const nom = row.dataset.nom.toLowerCase();
                         const trajet = row.dataset.trajet.toLowerCase();
                         const rowStatut = row.dataset.statut.toLowerCase();
 
-                        const matchesSearch = !query || description.includes(query) || trajet.includes(query) || rowStatut.includes(query);
+                        const matchesSearch = !query || nom.includes(query) || trajet.includes(query) || rowStatut.includes(query);
                         const matchesClient = !clientId || clientIdTable === clientId;
                         const matchesStatut = !statut || rowStatut === statut;
 
                         row.style.display = matchesSearch && matchesClient && matchesStatut ? '' : 'none';
                     });
 
-                    // Hide client section if no rows are visible
                     const parentDiv = table.closest('div');
                     parentDiv.style.display = rows.some(row => row.style.display !== 'none') ? '' : 'none';
                 });
 
-                // Show "no results" message if needed
                 const visibleTableRows = tableRows.filter(row => row.style.display !== 'none');
                 const visibleGroupedRows = groupedTables.some(table => table.closest('div').style.display !== 'none');
                 if (document.getElementById('tableView').classList.contains('hidden')) {
                     if (!visibleGroupedRows && !document.querySelector('.no-results-grouped')) {
                         const noResultsDiv = document.createElement('div');
                         noResultsDiv.className = 'no-results-grouped text-center py-6 text-gray-500';
-                        noResultsDiv.textContent = 'Aucune marchandise trouvée.';
+                        noResultsDiv.textContent = 'Aucune marchandise transportée trouvée.';
                         document.getElementById('groupedView').appendChild(noResultsDiv);
                     } else if (visibleGroupedRows) {
                         const noResultsDiv = document.querySelector('.no-results-grouped');
@@ -411,7 +414,7 @@
                     if (visibleTableRows.length === 0 && !tableBody.querySelector('.no-results')) {
                         const noResultsRow = document.createElement('tr');
                         noResultsRow.className = 'no-results';
-                        noResultsRow.innerHTML = '<td colspan="9" class="text-center py-6 text-gray-500">Aucune marchandise trouvée.</td>';
+                        noResultsRow.innerHTML = '<td colspan="9" class="text-center py-6 text-gray-500">Aucune marchandise transportée trouvée.</td>';
                         tableBody.appendChild(noResultsRow);
                     } else if (visibleTableRows.length > 0) {
                         const noResultsRow = tableBody.querySelector('.no-results');
@@ -423,7 +426,6 @@
             }, 300);
         }
 
-        // Debounced filtering
         searchInput.addEventListener('input', debounce(applyFilters, 500));
         clientFilter.addEventListener('change', applyFilters);
         statutFilter.addEventListener('change', applyFilters);
@@ -433,7 +435,6 @@
             const order = th.dataset.order === 'asc' ? 'desc' : 'asc';
             th.dataset.order = order;
 
-            // Update sort indicators
             document.querySelectorAll('#marchandisesTable th').forEach(header => {
                 const icon = header.querySelector('svg');
                 if (header === th) {
@@ -465,7 +466,7 @@
 
             tableBody.innerHTML = '';
             tableRows.forEach(row => tableBody.appendChild(row));
-            applyFilters(); // Reapply filters after sorting
+            applyFilters();
         }
 
         // Sorting for grouped view
@@ -473,7 +474,6 @@
             const order = th.dataset.order === 'asc' ? 'desc' : 'asc';
             th.dataset.order = order;
 
-            // Update sort indicators for the specific table
             const table = document.querySelector(`table[data-client_id="${clientId}"]`);
             table.querySelectorAll('th').forEach(header => {
                 const icon = header.querySelector('svg');
@@ -504,7 +504,7 @@
 
             tbody.innerHTML = '';
             rows.forEach(row => tbody.appendChild(row));
-            applyFilters(); // Reapply filters after sorting
+            applyFilters();
         }
 
         // Highlight selected row
@@ -523,7 +523,7 @@
         function openDeleteModal(id) {
             deleteId = id;
             const deleteForm = document.getElementById('deleteForm');
-            deleteForm.action = `{{ url('marchandises') }}/${id}`;
+            deleteForm.action = `{{ url('transports') }}/${id}`;
             const modal = document.getElementById('deleteModal');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
@@ -586,7 +586,7 @@
                 highlightRow(visibleRows[currentIndex]);
             } else if (e.key === 'Enter' && selectedRow) {
                 e.preventDefault();
-                const editLink = selectedRow.querySelector('a[aria-label="Modifier la marchandise"]');
+                const editLink = selectedRow.querySelector('a[aria-label="Modifier la marchandise transportée"]');
                 if (editLink) window.location.href = editLink.href;
             } else if (e.key === 'Escape' && !document.getElementById('deleteModal').classList.contains('hidden')) {
                 closeDeleteModal();
@@ -609,4 +609,4 @@
             showSuccessMessage("{{ session('success') }}");
         @endif
     </script>
-</x-layouts.app> --}}
+</x-layouts.app>

@@ -21,6 +21,6 @@ class Marchandise extends Model
     // Une marchandise peut être transportée plusieurs fois
   public function transports() {
 
-    return $this->hasMany(MarchandiseTransportee::class, 'marchandise_id');
+    return $this->hasMany(Transport::class, 'marchandise_id');
 }
 }

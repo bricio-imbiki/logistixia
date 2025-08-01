@@ -1,3 +1,401 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Camion;
+use App\Models\Chauffeur;
+use App\Models\Trajet;
+use App\Models\Depense;
+use App\Models\Marchandise;
+use App\Models\Revenu;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+
+class DashboardController extends Controller
+{
+    /**
+     * Display the dashboard with logistics statistics.
+     */
+    public function index(Request $request)
+    {
+        // Date range filter (default: last 30 days)
+        $startDate = $request->query('start_date', Carbon::today()->subDays(30)->toDateString());
+        $endDate = $request->query('end_date', Carbon::today()->toDateString());
+
+        // Validate dates
+        try {
+            $start = Carbon::parse($startDate)->startOfDay();
+            $end = Carbon::parse($endDate)->endOfDay();
+        } catch (\Exception $e) {
+            Log::warning('Invalid date range provided: ' . $e->getMessage());
+            $start = Carbon::today()->subDays(30)->startOfDay();
+            $end = Carbon::today()->endOfDay();
+            $startDate = $start->toDateString();
+            $endDate = $end->toDateString();
+        }
+
+        // Statistics
+        $stats = [
+            'total_camions' => Camion::count(),
+            'total_chauffeurs' => Chauffeur::count(),
+            'total_revenue' => Trajet::whereBetween('date_depart', [$start, $end])
+                ->join('marchandises', 'trajets.id', '=', 'marchandises.trajet_id')
+                ->where('marchandises.statut', 'livree')
+                ->sum('marchandises.valeur_estimee'),
+
+            'total_depenses' => Depense::whereBetween('dep_date', [$start, $end])->sum('montant'),
+            'trips_by_status' => [
+                'chargee' => Marchandise::where('statut', 'chargee')
+                    ->whereHas('trajet', fn($q) => $q->whereBetween('date_depart', [$start, $end]))
+                    ->count(),
+                'en_transit' => Marchandise::where('statut', 'en_transit')
+                    ->whereHas('trajet', fn($q) => $q->whereBetween('date_depart', [$start, $end]))
+                    ->count(),
+                'livree' => Marchandise::where('statut', 'livree')
+                    ->whereHas('trajet', fn($q) => $q->whereBetween('date_depart', [$start, $end]))
+                    ->count(),
+                'retour' => Marchandise::where('statut', 'retour')
+                    ->whereHas('trajet', fn($q) => $q->whereBetween('date_depart', [$start, $end]))
+                    ->count(),
+            ],
+            'active_trucks' => Camion::whereHas('trajets', fn($q) => $q->whereBetween('date_depart', [$start, $end]))->count(),
+            'active_drivers' => Chauffeur::whereHas('trajets', fn($q) => $q->whereBetween('date_depart', [$start, $end]))->count(),
+            'total_trips' => Trajet::whereBetween('date_depart', [$start, $end])->count(),
+        ];
+
+        // Recent activities (last 5 trips)
+        $recent_activities = Trajet::with(['marchandises', 'chauffeur', 'camion', 'itineraire'])
+            ->whereBetween('date_depart', [$start, $end])
+            ->orderBy('date_depart', 'desc')
+            ->take(5)
+            ->get();
+
+        // Chart data (daily revenue)
+        $chart_data = [
+            'revenue' => [],
+            'labels' => [],
+        ];
+        $current = $start->copy();
+        while ($current <= $end) {
+            $chart_data['labels'][] = $current->format('d/m');
+            $chart_data['revenue'][] = Revenu::whereDate('date_encaisse', $current)
+                ->join('marchandises', 'revenus.marchandise_id', '=', 'marchandises.id')
+                ->where('marchandises.statut', 'livree')
+                ->sum('revenus.montant');
+            $current->addDay();
+        }
+
+        // Chart data (monthly expenses)
+        $expense_data = [
+            'expenses' => [],
+            'labels' => [],
+        ];
+        $current = $start->copy()->startOfMonth();
+        while ($current <= $end) {
+            $expense_data['labels'][] = $current->format('M Y');
+            $expense_data['expenses'][] = Depense::whereMonth('dep_date', $current->month)
+                ->whereYear('dep_date', $current->year)
+                ->sum('montant');
+            $current->addMonth();
+        }
+
+        if ($request->ajax()) {
+            return response()->json(compact('stats', 'recent_activities', 'chart_data', 'expense_data', 'startDate', 'endDate'));
+        }
+
+        return view('dashboard.index', compact('stats', 'recent_activities', 'chart_data', 'expense_data', 'startDate', 'endDate'));
+    }
+
+  // 'total_revenue' => Revenu::whereBetween('date_encaisse', [$start, $end])
+            //     ->join('marchandises', 'revenus.marchandise_id', '=', 'marchandises.id')
+            //     ->where('marchandises.statut', 'livree')
+            //     ->sum('revenus.montant'),
+
+
+    // public function index(Request $request)
+    // {
+    //     // Date range filter (default: last 30 days)
+    //     $startDate = $request->query('start_date', Carbon::today()->subDays(30)->toDateString());
+    //     $endDate = $request->query('end_date', Carbon::today()->toDateString());
+
+    //     // Validate dates
+    //     try {
+    //         $start = Carbon::parse($startDate)->startOfDay();
+    //         $end = Carbon::parse($endDate)->endOfDay();
+    //     } catch (\Exception $e) {
+    //         Log::warning('Invalid date range provided: ' . $e->getMessage());
+    //         $start = Carbon::today()->subDays(30)->startOfDay();
+    //         $end = Carbon::today()->endOfDay();
+    //         $startDate = $start->toDateString();
+    //         $endDate = $end->toDateString();
+    //     }
+
+    //     // Statistics
+    //     $stats = [
+    //         'total_camions' => Camion::count(),
+    //         'total_chauffeurs' => Chauffeur::count(),
+    //         'total_revenue' => Trajet::whereBetween('date_depart', [$start, $end])
+    //             ->join('marchandises', 'trajets.id', '=', 'marchandises.trajet_id')
+    //             ->where('marchandises.statut', 'livree')
+    //             ->sum('marchandises.valeur_estimee'),
+    //         'total_depenses' => Depense::whereBetween('dep_date', [$start, $end])->sum('montant'),
+    //         'trips_by_status' => [
+    //             'chargee' => Marchandise::where('statut', 'chargee')
+    //                 ->whereHas('trajet', fn($q) => $q->whereBetween('date_depart', [$start, $end]))
+    //                 ->count(),
+    //             'en_transit' => Marchandise::where('statut', 'en_transit')
+    //                 ->whereHas('trajet', fn($q) => $q->whereBetween('date_depart', [$start, $end]))
+    //                 ->count(),
+    //             'livree' => Marchandise::where('statut', 'livree')
+    //                 ->whereHas('trajet', fn($q) => $q->whereBetween('date_depart', [$start, $end]))
+    //                 ->count(),
+    //             'retour' => Marchandise::where('statut', 'retour')
+    //                 ->whereHas('trajet', fn($q) => $q->whereBetween('date_depart', [$start, $end]))
+    //                 ->count(),
+    //         ],
+    //         'active_trucks' => Camion::whereHas('trajets', fn($q) => $q->whereBetween('date_depart', [$start, $end]))->count(),
+    //         'active_drivers' => Chauffeur::whereHas('trajets', fn($q) => $q->whereBetween('date_depart', [$start, $end]))->count(),
+    //     ];
+
+    //     // Recent activities (last 5 trips)
+    //     $recent_activities = Trajet::with(['marchandises', 'chauffeur', 'camion', 'itineraire'])
+    //         ->whereBetween('date_depart', [$start, $end])
+    //         ->orderBy('date_depart', 'desc')
+    //         ->take(5)
+    //         ->get();
+
+    //     // Chart data (daily revenue)
+    //     $chart_data = [
+    //         'revenue' => [],
+    //         'labels' => [],
+    //     ];
+    //     $current = $start->copy();
+    //     while ($current <= $end) {
+    //         $chart_data['labels'][] = $current->format('d/m');
+    //         $chart_data['revenue'][] = Trajet::whereDate('date_depart', $current)
+    //             ->join('marchandises', 'trajets.id', '=', 'marchandises.trajet_id')
+    //             ->where('marchandises.statut', 'livree')
+    //             ->sum('marchandises.valeur_estimee');
+    //         $current->addDay();
+    //     }
+
+    //     // Chart data (monthly expenses)
+    //     $expense_data = [
+    //         'expenses' => [],
+    //         'labels' => [],
+    //     ];
+    //     $current = $start->copy()->startOfMonth();
+    //     while ($current <= $end) {
+    //         $expense_data['labels'][] = $current->format('M Y');
+    //         $expense_data['expenses'][] = Depense::whereMonth('date', $current->month)
+    //             ->whereYear('date', $current->year)
+    //             ->sum('montant');
+    //         $current->addMonth();
+    //     }
+
+    //     if ($request->ajax()) {
+    //         return response()->json(compact('stats', 'recent_activities', 'chart_data', 'expense_data', 'startDate', 'endDate'));
+    //     }
+
+    //     return view('dashboard.index', compact('stats', 'recent_activities', 'chart_data', 'expense_data', 'startDate', 'endDate'));
+    // }
+
+    /**
+     * Show the form for creating a new resource.
+     */
+    public function create()
+    {
+        //
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request)
+    {
+        //
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(string $id)
+    {
+        //
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(string $id)
+    {
+        //
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, string $id)
+    {
+        //
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(string $id)
+    {
+        //
+    }
+}
+
+
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\MarchandiseTransportee;
+use App\Models\Marchandise;
+use App\Models\Trajet;
+use App\Models\Client;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Exception;
+
+class MarchandiseTransporteeController extends Controller
+{
+    protected function validateTransport(Request $request, bool $isMultiple = false): array
+    {
+        if ($isMultiple) {
+            return $request->validate([
+                'client_id' => ['required', 'exists:clients,id'],
+                'marchandises' => ['required', 'array', 'min:1'],
+                'marchandises.*.trajet_id' => ['required', 'exists:trajets,id'],
+                'marchandises.*.marchandise_id' => ['required', 'exists:marchandises,id'],
+                'marchandises.*.quantite' => ['required', 'numeric', 'min:0'],
+                'marchandises.*.poids_kg' => ['nullable', 'numeric', 'min:0'],
+                'marchandises.*.volume_m3' => ['nullable', 'numeric', 'min:0'],
+                'marchandises.*.valeur_estimee' => ['nullable', 'numeric', 'min:0'],
+                'marchandises.*.lieu_livraison' => ['nullable', 'string', 'max:120'],
+                'marchandises.*.statut' => ['required', 'in:chargee,en_transit,livree,retour'],
+            ]);
+        }
+
+        return $request->validate([
+            'trajet_id' => ['required', 'exists:trajets,id'],
+            'client_id' => ['required', 'exists:clients,id'],
+            'marchandise_id' => ['required', 'exists:marchandises,id'],
+            'quantite' => ['required', 'numeric', 'min:0'],
+            'poids_kg' => ['nullable', 'numeric', 'min:0'],
+            'volume_m3' => ['nullable', 'numeric', 'min:0'],
+            'valeur_estimee' => ['nullable', 'numeric', 'min:0'],
+            'lieu_livraison' => ['nullable', 'string', 'max:120'],
+            'statut' => ['required', 'in:chargee,en_transit,livree,retour'],
+        ]);
+    }
+
+    public function index(Request $request)
+    {
+        $query = MarchandiseTransportee::with(['client', 'trajet', 'marchandise']);
+
+        if ($request->filled('search')) {
+            $query->where('lieu_livraison', 'like', '%' . $request->search . '%');
+        }
+
+        if ($request->filled('client_id')) {
+            $query->where('client_id', $request->client_id);
+        }
+
+        if ($request->filled('statut')) {
+            $query->where('statut', $request->statut);
+        }
+
+        $marchandises = $query->paginate(10);
+        $clients = Client::all();
+        $stats = [
+            'chargee' => MarchandiseTransportee::where('statut', 'chargee')->count(),
+            'en_transit' => MarchandiseTransportee::where('statut', 'en_transit')->count(),
+            'livree' => MarchandiseTransportee::where('statut', 'livree')->count(),
+            'retour' => MarchandiseTransportee::where('statut', 'retour')->count(),
+        ];
+
+        return view('marchandises_transportees.index', compact('marchandises', 'clients', 'stats'));
+    }
+
+    public function create()
+    {
+        return view('marchandises_transportees.form', [
+            'marchandiseTransportee' => null,
+            'trajets' => Trajet::with('itineraire')->get(),
+            'clients' => Client::all(),
+            'marchandises' => Marchandise::all(),
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $this->validateTransport($request, true);
+
+        try {
+            foreach ($validated['marchandises'] as $data) {
+                MarchandiseTransportee::create([
+                    'trajet_id' => $data['trajet_id'],
+                    'client_id' => $validated['client_id'],
+                    'marchandise_id' => $data['marchandise_id'],
+                    'quantite' => $data['quantite'],
+                    'poids_kg' => $data['poids_kg'] ?? null,
+                    'volume_m3' => $data['volume_m3'] ?? null,
+                    'valeur_estimee' => $data['valeur_estimee'] ?? null,
+                    'lieu_livraison' => $data['lieu_livraison'] ?? null,
+                    'statut' => $data['statut'],
+                ]);
+            }
+
+            return redirect()->route('marchandises-transportees.index')->with('success', 'Marchandises transportées ajoutées.');
+        } catch (Exception $e) {
+            Log::error('Erreur lors de l’ajout : ' . $e->getMessage());
+            return back()->withInput()->withErrors(['error' => 'Erreur lors de l’ajout.']);
+        }
+    }
+
+    public function edit(MarchandiseTransportee $marchandiseTransportee)
+    {
+        return view('marchandises_transportees.form', [
+            'marchandiseTransportee' => $marchandiseTransportee,
+            'trajets' => Trajet::with('itineraire')->get(),
+            'clients' => Client::all(),
+            'marchandises' => Marchandise::all(),
+        ]);
+    }
+
+    public function update(Request $request, MarchandiseTransportee $marchandiseTransportee)
+    {
+        $validated = $this->validateTransport($request);
+
+        try {
+            $marchandiseTransportee->update($validated);
+            return redirect()->route('marchandises-transportees.index')->with('success', 'Mise à jour réussie.');
+        } catch (Exception $e) {
+            Log::error('Erreur MAJ : ' . $e->getMessage());
+            return back()->withInput()->withErrors(['error' => 'Erreur lors de la mise à jour.']);
+        }
+    }
+
+    public function destroy(MarchandiseTransportee $marchandiseTransportee)
+    {
+        try {
+            $marchandiseTransportee->delete();
+            return redirect()->route('marchandises-transportees.index')->with('success', 'Supprimée avec succès.');
+        } catch (Exception $e) {
+            Log::error('Erreur suppression : ' . $e->getMessage());
+            return back()->withErrors(['error' => 'Erreur lors de la suppression.']);
+        }
+    }
+}
+
+
+
 <x-layouts.app>
     <!-- Dependencies -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -144,7 +542,7 @@
                                 <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $activity->itineraire?->lieu_depart ?? '-' }} → {{ $activity->itineraire?->lieu_arrivee ?? '-' }}</p>
                                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ $activity->chauffeur?->nom ?? '-' }} | {{ $activity->camion?->accreditation ?? '-' }} | {{ \Carbon\Carbon::parse($activity->date_depart)->format('d/m/Y') }}</p>
                                 <p class="text-xs mt-1">
-                                    Statut: <span class="@if($activity->transport->first()?->statut === 'livree') text-green-600 dark:text-green-400 @elseif($activity->transport->first()?->statut === 'en_transit') text-yellow-600 dark:text-yellow-400 @elseif($activity->transport->first()?->statut === 'retour') text-red-600 dark:text-red-400 @else text-indigo-600 dark:text-indigo-400 @endif">{{ ucfirst($activity->transport->first()?->statut ?? '-') }}</span>
+                                    Statut: <span class="@if($activity->marchandises->first()?->statut === 'livree') text-green-600 dark:text-green-400 @elseif($activity->marchandises->first()?->statut === 'en_transit') text-yellow-600 dark:text-yellow-400 @elseif($activity->marchandises->first()?->statut === 'retour') text-red-600 dark:text-red-400 @else text-indigo-600 dark:text-indigo-400 @endif">{{ ucfirst($activity->marchandises->first()?->statut ?? '-') }}</span>
                                 </p>
                             </div>
                         </div>
@@ -245,7 +643,7 @@
 
             const activityFeed = document.getElementById('activityFeed');
             activityFeed.innerHTML = data.recent_activities.map((a, i) => {
-                const status = a.transport[0]?.statut ?? 'default';
+                const status = a.marchandises[0]?.statut ?? 'default';
                 const className = statusClasses[status] || statusClasses['default'];
                 return `
                     <div class="flex items-start gap-3 border-b border-gray-200 dark:border-gray-700 pb-3 animate-slide-in" style="animation-delay: ${i * 0.1}s" role="listitem" tabindex="0">
@@ -255,7 +653,7 @@
                         <div class="flex-1">
                             <p class="text-sm font-medium text-gray-900 dark:text-white">${a.itineraire?.lieu_depart ?? '-'} → ${a.itineraire?.lieu_arrivee ?? '-'}</p>
                             <p class="text-xs text-gray-500 dark:text-gray-400">${a.chauffeur?.nom ?? '-'} | ${a.camion?.accreditation ?? '-'} | ${new Date(a.date_depart).toLocaleDateString('fr-FR')}</p>
-                            <p class="text-xs">Statut: <span class="${className}">${a.transport[0]?.statut ?? '-'}</span></p>
+                            <p class="text-xs">Statut: <span class="${className}">${a.marchandises[0]?.statut ?? '-'}</span></p>
                         </div>
                     </div>
                 `;
@@ -321,7 +719,7 @@
                 const marker = L.AwesomeMarkers.icon({
                     icon: 'truck',
                     prefix: 'fa',
-                    markerColor: truck.status === 'en_transit' ? 'blue' : truck.status === 'livree' ? 'green' : truck.status === 'chargee' ? 'purple' : 'red'
+                    markerColor: truck.status === 'en_transit' ? 'blue' : truck.status === 'livree' ? 'green' : 'red'
                 });
 
                 const truckMarker = L.marker([truck.latitude, truck.longitude], { icon: marker })
@@ -342,8 +740,8 @@
             }
         }
 
-        // Initial map update
-        updateMap(@json($trucks));
+        // Fetch initial truck data
+        fetchData('{{ $startDate }}', '{{ $endDate }}');
 
         // Tooltips
         tippy('[data-tippy-content]', { theme: 'light', animation: 'scale' });

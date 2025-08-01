@@ -14,7 +14,7 @@ return new class extends Migration
   // migration correcte pour cette logique :
 Schema::create('revenus', function (Blueprint $table) {
     $table->id();
-    $table->foreignId('marchandise_transportee_id')->constrained('marchandises_transportees')->onDelete('cascade');
+    $table->foreignId('transport_id')->constrained('transports')->onDelete('cascade');
     $table->decimal('montant', 12, 2);
     $table->date('date_encaisse');
     $table->text('notes')->nullable();
