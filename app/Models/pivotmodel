@@ -1,0 +1,767 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Transport extends Model
+{
+    protected $fillable = [
+        'client_id', 'trajet_id', 'poids_kg', 'volume_m3', 'valeur_estimee', 'lieu_livraison', 'statut',
+    ];
+
+    public function merchandises()
+    {
+        return $this->belongsToMany(Marchandise::class, 'transport_marchandise')
+                    ->withPivot('quantite')
+                    ->withTimestamps();
+    }
+
+    public function client()
+    {
+        return $this->belongsTo(Client::class);
+    }
+
+    public function trajet()
+    {
+        return $this->belongsTo(Trajet::class);
+    }
+}
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('transport_marchandise', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('transport_id')->constrained('transports')->onDelete('cascade');
+            $table->foreignId('marchandise_id')->constrained('marchandises')->onDelete('cascade');
+            $table->decimal('quantite', 10, 2);
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('transport_marchandise');
+    }
+};
+
+<x-layouts.app>
+    <div class="max-w-3xl mx-auto p-6 bg-white rounded-xl shadow-md">
+        <h1 class="text-2xl font-bold mb-6">
+            {{ isset($transport) ? 'Modifier le transport' : 'Ajouter un nouveau transport' }}
+        </h1>
+
+        <form method="POST"
+              action="{{ isset($transport) ? route('transports.update', $transport) : route('transports.store') }}"
+              novalidate>
+            @csrf
+            @if(isset($transport))
+                @method('PUT')
+            @endif
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Client -->
+                <div class="md:col-span-2">
+                    <label for="client_id" class="block text-sm font-medium text-gray-700">Client *</label>
+                    <div class="flex gap-2">
+                        <select name="client_id" id="client_id" required
+                                class="mt-1 block w-full rounded border border-gray-300 px-3 py-2">
+                            <option value="">-- Sélectionner un client --</option>
+                            @foreach ($clients as $client)
+                                <option value="{{ $client->id }}"
+                                    @selected(old('client_id', $transport?->client_id ?? '') == $client->id)>
+                                    {{ $client->raison_sociale }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <button type="button" onclick="openClientModal()"
+                                class="mt-1 bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 whitespace-nowrap">
+                            + Ajouter Client
+                        </button>
+                    </div>
+                    @error('client_id') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
+
+                <!-- Trajet -->
+                <div class="md:col-span-2">
+                    <label for="trajet_id" class="block text-sm font-medium text-gray-700">Trajet *</label>
+                    <div class="flex gap-2">
+                        <select name="trajet_id" id="trajet_id" required
+                                class="mt-1 block w-full rounded border border-gray-300 px-3 py-2">
+                            <option value="">-- Sélectionner un trajet --</option>
+                            @foreach($trajets as $trajet)
+                                <option value="{{ $trajet->id }}"
+                                        @selected(old('trajet_id', $transport?->trajet_id ?? '') == $trajet->id)>
+                                    {{ $trajet->itineraire->lieu_depart }} → {{ $trajet->itineraire->lieu_arrivee }}
+                                    ({{ \Carbon\Carbon::parse($trajet->date_depart)->format('d/m/Y') }})
+                                </option>
+                            @endforeach
+                        </select>
+                        <button type="button" onclick="openTrajetModal()"
+                                class="mt-1 bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700 whitespace-nowrap">
+                            + Ajouter Trajet
+                        </button>
+                    </div>
+                    @error('trajet_id') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
+
+                <!-- Marchandises -->
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700">Marchandises *</label>
+                    <div id="merchandise-container" class="mt-2">
+                        @if(isset($transport) && $transport->merchandises->isNotEmpty())
+                            @foreach($transport->merchandises as $index => $merchandise)
+                                <div class="merchandise-row flex gap-4 items-end mb-2">
+                                    <div class="flex-1">
+                                        <select name="merchandises[{{ $index }}][marchandise_id]" class="merchandise-select mt-1 block w-full rounded border border-gray-300 px-3 py-2" required>
+                                            <option value="">-- Sélectionner une marchandise --</option>
+                                            @foreach($marchandises as $m)
+                                                <option value="{{ $m->id }}"
+                                                        data-poids-moyen="{{ $m->poids_moyen }}"
+                                                        data-tarif-par-defaut="{{ $m->tarif_par_defaut }}"
+                                                        @selected(old("merchandises.$index.marchandise_id", $merchandise->id) == $m->id)>
+                                                    {{ $m->nom }} ({{ $m->unite }})
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        @error("merchandises.$index.marchandise_id") <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
+                                    </div>
+                                    <div class="w-24">
+                                        <input type="number" step="0.01" name="merchandises[{{ $index }}][quantite]" class="merchandise-quantite mt-1 block w-full rounded border border-gray-300 px-3 py-2" placeholder="Quantité" required
+                                               value="{{ old("merchandises.$index.quantite", $merchandise->pivot->quantite) }}">
+                                        @error("merchandises.$index.quantite") <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
+                                    </div>
+                                    <button type="button" class="remove-row bg-red-600 text-white px-3 py-2 rounded hover:bg-red-700" {{ $index == 0 ? 'disabled' : '' }}>–</button>
+                                </div>
+                            @endforeach
+                        @else
+                            <div class="merchandise-row flex gap-4 items-end mb-2">
+                                <div class="flex-1">
+                                    <select name="merchandises[0][marchandise_id]" class="merchandise-select mt-1 block w-full rounded border border-gray-300 px-3 py-2" required>
+                                        <option value="">-- Sélectionner une marchandise --</option>
+                                        @foreach($marchandises as $marchandise)
+                                            <option value="{{ $marchandise->id }}"
+                                                    data-poids-moyen="{{ $marchandise->poids_moyen }}"
+                                                    data-tarif-par-defaut="{{ $marchandise->tarif_par_defaut }}"
+                                                    @selected(old('merchandises.0.marchandise_id') == $marchandise->id)>
+                                                {{ $marchandise->nom }} ({{ $marchandise->unite }})
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('merchandises.0.marchandise_id') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
+                                </div>
+                                <div class="w-24">
+                                    <input type="number" step="0.01" name="merchandises[0][quantite]" class="merchandise-quantite mt-1 block w-full rounded border border-gray-300 px-3 py-2" placeholder="Quantité" required
+                                           value="{{ old('merchandises.0.quantite') }}">
+                                    @error('merchandises.0.quantite') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
+                                </div>
+                                <button type="button" class="remove-row bg-red-600 text-white px-3 py-2 rounded hover:bg-red-700" disabled>–</button>
+                            </div>
+                        @endif
+                    </div>
+                    <button type="button" id="add-merchandise" class="mt-2 bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700">
+                        + Ajouter une marchandise
+                    </button>
+                </div>
+
+                <!-- Poids (kg) -->
+                <div>
+                    <label for="poids_kg" class="block text-sm font-medium text-gray-700">Poids total (kg)</label>
+                    <input type="number" step="0.01" name="poids_kg" id="poids_kg" readonly
+                           class="mt-1 block w-full rounded border border-gray-300 px-3 py-2 bg-gray-100"
+                           value="{{ old('poids_kg', $transport?->poids_kg ?? 0) }}">
+                    @error('poids_kg') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
+
+                <!-- Volume (m³) -->
+                <div>
+                    <label for="volume_m3" class="block text-sm font-medium text-gray-700">Volume (m³)</label>
+                    <input type="number" step="0.01" name="volume_m3" id="volume_m3"
+                           class="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
+                           value="{{ old('volume_m3', $transport?->volume_m3 ?? '') }}">
+                    @error('volume_m3') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
+
+                <!-- Valeur estimée (Ariary) -->
+                <div>
+                    <label for="valeur_estimee" class="block text-sm font-medium text-gray-700">Valeur estimée (Ariary)</label>
+                    <input type="number" step="0.01" name="valeur_estimee" id="valeur_estimee" readonly
+                           class="mt-1 block w-full rounded border border-gray-300 px-3 py-2 bg-gray-100"
+                           value="{{ old('valeur_estimee', $transport?->valeur_estimee ?? 0) }}">
+                    @error('valeur_estimee') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
+
+                <!-- Lieu de livraison -->
+                <div>
+                    <label for="lieu_livraison" class="block text-sm font-medium text-gray-700">Lieu de livraison</label>
+                    <input type="text" name="lieu_livraison" id="lieu_livraison"
+                           class="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
+                           value="{{ old('lieu_livraison', $transport?->lieu_livraison ?? '') }}">
+                    @error('lieu_livraison') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
+
+                <!-- Statut -->
+                <div>
+                    <label for="statut" class="block text-sm font-medium text-gray-700">Statut</label>
+                    <select name="statut" id="statut"
+                            class="mt-1 block w-full rounded border border-gray-300 px-3 py-2">
+                        <option value="chargee" @selected(old('statut', $transport?->statut ?? '') == 'chargee')>Chargée</option>
+                        <option value="en_transit" @selected(old('statut', $transport?->statut ?? '') == 'en_transit')>En transit</option>
+                        <option value="livree" @selected(old('statut', $transport?->statut ?? '') == 'livree')>Livrée</option>
+                        <option value="retour" @selected(old('statut', $transport?->statut ?? '') == 'retour')>Retour</option>
+                    </select>
+                    @error('statut') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
+            </div>
+
+            <!-- Boutons -->
+            <div class="mt-6 flex justify-end gap-3">
+                <a href="{{ route('transports.index') }}"
+                   class="px-4 py-2 rounded border border-gray-300 text-gray-600 hover:bg-gray-100">
+                    <i class="fas fa-arrow-left mr-1"></i> Annuler
+                </a>
+                <x-button type="submit"
+                          class="px-6 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700 flex items-center gap-2">
+                    @if(isset($transport))
+                        <i class="fas fa-pen mr-1"></i> Mettre à jour
+                    @else
+                        <i class="fas fa-save mr-1"></i> Enregistrer
+                    @endif
+                </x-button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Modales -->
+    @include('modals.client-create')
+    @include('modals.trajet-create')
+
+    <script>
+        // === Modal Functions (Client and Trajet) ===
+        function openClientModal() {
+            const modal = document.getElementById('clientModal');
+            const modalContent = document.getElementById('clientModalContent');
+            modal.classList.remove('opacity-0', 'invisible');
+            modal.classList.add('opacity-100', 'visible');
+            setTimeout(() => {
+                modalContent.classList.remove('-translate-y-full', 'scale-95');
+                modalContent.classList.add('translate-y-0', 'scale-100');
+            }, 10);
+            setTimeout(() => document.getElementById('modal_raison_sociale')?.focus(), 350);
+            toggleBodyScroll(true);
+        }
+
+        function closeClientModal() {
+            const modal = document.getElementById('clientModal');
+            const modalContent = document.getElementById('clientModalContent');
+            modalContent.classList.remove('translate-y-0', 'scale-100');
+            modalContent.classList.add('-translate-y-full', 'scale-95');
+            setTimeout(() => {
+                modal.classList.remove('opacity-100', 'visible');
+                modal.classList.add('opacity-0', 'invisible');
+                document.getElementById('clientForm').reset();
+                toggleBodyScroll(false);
+            }, 300);
+        }
+
+        function openTrajetModal() {
+            const modal = document.getElementById('trajetModal');
+            const modalContent = document.getElementById('trajetModalContent');
+            modal.classList.remove('opacity-0', 'invisible');
+            modal.classList.add('opacity-100', 'visible');
+            setTimeout(() => {
+                modalContent.classList.remove('-translate-y-full', 'scale-95');
+                modalContent.classList.add('translate-y-0', 'scale-100');
+            }, 10);
+            setTimeout(() => document.getElementById('modal_camion_id')?.focus(), 350);
+            toggleBodyScroll(true);
+        }
+
+        function closeTrajetModal() {
+            const modal = document.getElementById('trajetModal');
+            const modalContent = document.getElementById('trajetModalContent');
+            modalContent.classList.remove('translate-y-0', 'scale-100');
+            modalContent.classList.add('-translate-y-full', 'scale-95');
+            setTimeout(() => {
+                modal.classList.remove('opacity-100', 'visible');
+                modal.classList.add('opacity-0', 'invisible');
+                document.getElementById('trajetForm').reset();
+                toggleBodyScroll(false);
+            }, 300);
+        }
+
+        document.getElementById('clientForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Enregistrement...';
+
+            fetch('{{ route('clients.store.ajax') }}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': formData.get('_token'),
+                    'Accept': 'application/json'
+                },
+                body: formData
+            })
+            .then(response => response.ok ? response.json() : Promise.reject('Erreur réseau'))
+            .then(data => {
+                if (data.success) {
+                    const select = document.getElementById('client_id');
+                    const option = new Option(data.client.raison_sociale, data.client.id, true, true);
+                    select.appendChild(option);
+                    closeClientModal();
+                    showSuccessMessage('Client ajouté avec succès');
+                } else {
+                    throw new Error(data.message || 'Erreur lors de l\'ajout du client');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                showErrorMessage('Erreur lors de l\'ajout du client: ' + error.message);
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            });
+        });
+
+        document.getElementById('trajetForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Enregistrement...';
+
+            fetch('{{ route('trajets.store.ajax') }}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': formData.get('_token'),
+                    'Accept': 'application/json'
+                },
+                body: formData
+            })
+            .then(response => response.ok ? response.json() : Promise.reject('Erreur réseau'))
+            .then(data => {
+                if (data.success) {
+                    const select = document.getElementById('trajet_id');
+                    const optionText = `${data.trajet.lieu_depart} → ${data.trajet.lieu_arrivee} (${data.trajet.date_depart})`;
+                    const option = new Option(optionText, data.trajet.id, true, true);
+                    select.appendChild(option);
+                    closeTrajetModal();
+                    showSuccessMessage('Trajet ajouté avec succès');
+                } else {
+                    throw new Error(data.message || 'Erreur lors de l\'ajout du trajet');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                showErrorMessage('Erreur lors de l\'ajout du trajet: ' + error.message);
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            });
+        });
+
+        // === Merchandise Management ===
+        let rowIndex = {{ isset($transport) && $transport->merchandises->isNotEmpty() ? $transport->merchandises->count() : 1 }};
+
+        document.getElementById('add-merchandise').addEventListener('click', function () {
+            const container = document.getElementById('merchandise-container');
+            const newRow = document.createElement('div');
+            newRow.className = 'merchandise-row flex gap-4 items-end mb-2';
+            newRow.innerHTML = `
+                <div class="flex-1">
+                    <select name="merchandises[${rowIndex}][marchandise_id]" class="merchandise-select mt-1 block w-full rounded border border-gray-300 px-3 py-2" required>
+                        <option value="">-- Sélectionner une marchandise --</option>
+                        @foreach($marchandises as $marchandise)
+                            <option value="{{ $marchandise->id }}"
+                                    data-poids-moyen="{{ $marchandise->poids_moyen }}"
+                                    data-tarif-par-defaut="{{ $marchandise->tarif_par_defaut }}">
+                                {{ $marchandise->nom }} ({{ $marchandise->unite }})
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="w-24">
+                    <input type="number" step="0.01" name="merchandises[${rowIndex}][quantite]" class="merchandise-quantite mt-1 block w-full rounded border border-gray-300 px-3 py-2" placeholder="Quantité" required>
+                </div>
+                <button type="button" class="remove-row bg-red-600 text-white px-3 py-2 rounded hover:bg-red-700">–</button>
+            `;
+            container.appendChild(newRow);
+            rowIndex++;
+            updateRemoveButtons();
+            updateCalculations();
+        });
+
+        document.addEventListener('click', function (e) {
+            if (e.target.classList.contains('remove-row')) {
+                e.target.closest('.merchandise-row').remove();
+                updateRemoveButtons();
+                updateCalculations();
+            }
+        });
+
+        function updateRemoveButtons() {
+            const rows = document.querySelectorAll('.merchandise-row');
+            const removeButtons = document.querySelectorAll('.remove-row');
+            removeButtons.forEach(button => button.disabled = rows.length === 1);
+        }
+
+        // === Calculations ===
+        function updateCalculations() {
+            let totalPoids = 0;
+            let totalValeur = 0;
+
+            document.querySelectorAll('.merchandise-row').forEach(row => {
+                const select = row.querySelector('.merchandise-select');
+                const quantiteInput = row.querySelector('.merchandise-quantite');
+                const marchandiseId = select.value;
+                const quantite = parseFloat(quantiteInput.value) || 0;
+
+                if (marchandiseId) {
+                    const poidsMoyen = parseFloat(select.selectedOptions[0].dataset.poidsMoyen) || 0;
+                    const tarifParDefaut = parseFloat(select.selectedOptions[0].dataset.tarifParDefaut) || 0;
+                    totalPoids += quantite * poidsMoyen;
+                    totalValeur += quantite * tarifParDefaut;
+                }
+            });
+
+            document.getElementById('poids_kg').value = totalPoids.toFixed(2);
+            document.getElementById('valeur_estimee').value = totalValeur.toFixed(2);
+        }
+
+        document.addEventListener('change', function (e) {
+            if (e.target.classList.contains('merchandise-select') || e.target.classList.contains('merchandise-quantite')) {
+                updateCalculations();
+            }
+        });
+
+        document.addEventListener('input', function (e) {
+            if (e.target.classList.contains('merchandise-quantite')) {
+                updateCalculations();
+            }
+        });
+
+        // Initial calculations and buttons state
+        updateCalculations();
+        updateRemoveButtons();
+
+        // === Utility Functions ===
+        function showSuccessMessage(message) {
+            alert(message); // Replace with your notification system
+        }
+
+        function showErrorMessage(message) {
+            alert(message); // Replace with your notification system
+        }
+
+        document.addEventListener('click', function (e) {
+            if (e.target.id === 'clientModal') closeClientModal();
+            if (e.target.id === 'trajetModal') closeTrajetModal();
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                const clientModal = document.getElementById('clientModal');
+                const trajetModal = document.getElementById('trajetModal');
+                if (clientModal.classList.contains('opacity-100')) closeClientModal();
+                if (trajetModal.classList.contains('opacity-100')) closeTrajetModal();
+            }
+        });
+
+        function toggleBodyScroll(disable) {
+            document.body.style.overflow = disable ? 'hidden' : '';
+        }
+    </script>
+</x-layouts.app>
+
+
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Camion;
+use App\Models\Chauffeur;
+use App\Models\Marchandise;
+use App\Models\Trajet;
+use App\Models\Client;
+use App\Models\Itineraire;
+use App\Models\Remorque;
+use App\Models\Transport;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Exception;
+
+class TransportController extends Controller
+{
+    protected function validateTransport(Request $request): array
+    {
+        return $request->validate([
+            'client_id' => ['required', 'exists:clients,id'],
+            'trajet_id' => ['required', 'exists:trajets,id'],
+            'merchandises' => ['required', 'array', 'min:1'],
+            'merchandises.*.marchandise_id' => ['required', 'exists:marchandises,id'],
+            'merchandises.*.quantite' => ['required', 'numeric', 'min:0.01'],
+            'volume_m3' => ['nullable', 'numeric', 'min:0'],
+            'lieu_livraison' => ['nullable', 'string', 'max:120'],
+            'statut' => ['required', 'in:chargee,en_transit,livree,retour'],
+            'poids_kg' => ['nullable', 'numeric', 'min:0'], // Client-side calculated, validated server-side
+            'valeur_estimee' => ['nullable', 'numeric', 'min:0'], // Client-side calculated, validated server-side
+        ]);
+    }
+
+    public function index(Request $request)
+    {
+        $query = Transport::with(['client', 'trajet', 'merchandises']);
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('lieu_livraison', 'like', "%$search%")
+                  ->orWhereHas('merchandises', fn($q) => $q->where('nom', 'like', "%$search%"))
+                  ->orWhereHas('client', fn($q) => $q->where('raison_sociale', 'like', "%$search%"));
+            });
+        }
+
+        if ($request->filled('client_id')) {
+            $query->where('client_id', $request->client_id);
+        }
+
+        if ($request->filled('statut')) {
+            $query->where('statut', $request->statut);
+        }
+
+        $transports = $query->paginate(10);
+        $clients = Client::all();
+        $stats = [
+            'chargee' => Transport::where('statut', 'chargee')->count(),
+            'en_transit' => Transport::where('statut', 'en_transit')->count(),
+            'livree' => Transport::where('statut', 'livree')->count(),
+            'retour' => Transport::where('statut', 'retour')->count(),
+        ];
+
+        return view('transports.index', compact('transports', 'clients', 'stats'));
+    }
+
+    public function create()
+    {
+        return view('marchandises-transportees.form', [
+            'transport' => null,
+            'trajets' => Trajet::with('itineraire')->get(),
+            'clients' => Client::all(),
+            'camions' => Camion::all(),
+            'chauffeurs' => Chauffeur::all(),
+            'remorques' => Remorque::all(),
+            'itineraires' => Itineraire::all(),
+            'marchandises' => Marchandise::all(),
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $this->validateTransport($request);
+
+        try {
+            // Calculate poids_kg and valeur_estimee server-side
+            $poids_kg = 0;
+            $valeur_estimee = 0;
+            $merchandiseData = [];
+
+            foreach ($validated['merchandises'] as $item) {
+                $marchandise = Marchandise::findOrFail($item['marchandise_id']);
+                $quantite = $item['quantite'];
+                $poids_kg += $quantite * ($marchandise->poids_moyen ?? 0);
+                $valeur_estimee += $quantite * ($marchandise->tarif_par_defaut ?? 0);
+                $merchandiseData[$item['marchandise_id']] = ['quantite' => $quantite];
+            }
+
+            // Create transport
+            $transport = Transport::create([
+                'client_id' => $validated['client_id'],
+                'trajet_id' => $validated['trajet_id'],
+                'poids_kg' => $poids_kg,
+                'volume_m3' => $validated['volume_m3'] ?? null,
+                'valeur_estimee' => $valeur_estimee,
+                'lieu_livraison' => $validated['lieu_livraison'] ?? null,
+                'statut' => $validated['statut'],
+            ]);
+
+            // Attach merchandises to transport
+            $transport->merchandises()->sync($merchandiseData);
+
+            return redirect()->route('transports.index')->with('success', 'Transport ajouté avec succès.');
+        } catch (Exception $e) {
+            Log::error('Erreur lors de l’ajout du transport : ' . $e->getMessage());
+            return back()->withInput()->withErrors(['error' => 'Erreur lors de l’ajout du transport.']);
+        }
+    }
+
+    public function edit(Transport $transport)
+    {
+        return view('marchandises-transportees.form', [
+            'transport' => $transport,
+            'trajets' => Trajet::with('itineraire')->get(),
+            'clients' => Client::all(),
+            'marchandises' => Marchandise::all(),
+        ]);
+    }
+
+    public function update(Request $request, Transport $transport)
+    {
+        $validated = $this->validateTransport($request);
+
+        try {
+            // Calculate poids_kg and valeur_estimee server-side
+            $poids_kg = 0;
+            $valeur_estimee = 0;
+            $merchandiseData = [];
+
+            foreach ($validated['merchandises'] as $item) {
+                $marchandise = Marchandise::findOrFail($item['marchandise_id']);
+                $quantite = $item['quantite'];
+                $poids_kg += $quantite * ($marchandise->poids_moyen ?? 0);
+                $valeur_estimee += $quantite * ($marchandise->tarif_par_defaut ?? 0);
+                $merchandiseData[$item['marchandise_id']] = ['quantite' => $quantite];
+            }
+
+            // Update transport
+            $transport->update([
+                'client_id' => $validated['client_id'],
+                'trajet_id' => $validated['trajet_id'],
+                'poids_kg' => $poids_kg,
+                'volume_m3' => $validated['volume_m3'] ?? null,
+                'valeur_estimee' => $valeur_estimee,
+                'lieu_livraison' => $validated['lieu_livraison'] ?? null,
+                'statut' => $validated['statut'],
+            ]);
+
+            // Sync merchandises
+            $transport->merchandises()->sync($merchandiseData);
+
+            return redirect()->route('transports.index')->with('success', 'Transport mis à jour avec succès.');
+        } catch (Exception $e) {
+            Log::error('Erreur lors de la mise à jour du transport : ' . $e->getMessage());
+            return back()->withInput()->withErrors(['error' => 'Erreur lors de la mise à jour du transport.']);
+        }
+    }
+
+    public function destroy(Transport $transport)
+    {
+        try {
+            $transport->delete();
+            return redirect()->route('transports.index')->with('success', 'Transport supprimé avec succès.');
+        } catch (Exception $e) {
+            Log::error('Erreur lors de la suppression du transport : ' . $e->getMessage());
+            return back()->withErrors(['error' => 'Erreur lors de la suppression du transport.']);
+        }
+    }
+}
+
+
+<x-layouts.app>
+    <div class="max-w-7xl mx-auto p-6">
+        <h1 class="text-2xl font-bold mb-6">Liste des Transports</h1>
+
+        <!-- Filters -->
+        <form method="GET" class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <input type="text" name="search" value="{{ request('search') }}" placeholder="Rechercher..." class="rounded border px-3 py-2">
+            <select name="client_id" class="rounded border px-3 py-2">
+                <option value="">Tous les clients</option>
+                @foreach($clients as $client)
+                    <option value="{{ $client->id }}" @selected(request('client_id') == $client->id)>{{ $client->raison_sociale }}</option>
+                @endforeach
+            </select>
+            <select name="statut" class="rounded border px-3 py-2">
+                <option value="">Tous les statuts</option>
+                <option value="chargee" @selected(request('statut') == 'chargee')>Chargée</option>
+                <option value="en_transit" @selected(request('statut') == 'en_transit')>En transit</option>
+                <option value="livree" @selected(request('statut') == 'livree')>Livrée</option>
+                <option value="retour" @selected(request('statut') == 'retour')>Retour</option>
+            </select>
+            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Filtrer</button>
+        </form>
+
+        <!-- Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-blue-100 p-4 rounded text-center">
+                <p class="font-bold">{{ $stats['chargee'] }}</p>
+                <p>Chargée</p>
+            </div>
+            <div class="bg-green-100 p-4 rounded text-center">
+                <p class="font-bold">{{ $stats['en_transit'] }}</p>
+                <p>En transit</p>
+            </div>
+            <div class="bg-yellow-100 p-4 rounded text-center">
+                <p class="font-bold">{{ $stats['livree'] }}</p>
+                <p>Livrée</p>
+            </div>
+            <div class="bg-red-100 p-4 rounded text-center">
+                <p class="font-bold">{{ $stats['retour'] }}</p>
+                <p>Retour</p>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <table class="w-full border-collapse bg-white rounded-lg shadow">
+            <thead>
+                <tr class="bg-gray-200">
+                    <th class="p-3 text-left">Client</th>
+                    <th class="p-3 text-left">Trajet</th>
+                    <th class="p-3 text-left">Marchandises</th>
+                    <th class="p-3 text-left">Poids (kg)</th>
+                    <th class="p-3 text-left">Statut</th>
+                    <th class="p-3 text-left">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($transports as $transport)
+                    <tr class="border-t">
+                        <td class="p-3">{{ $transport->client->raison_sociale }}</td>
+                        <td class="p-3">
+                            {{ $transport->trajet->itineraire->lieu_depart }} → {{ $transport->trajet->itineraire->lieu_arrivee }}
+                            ({{ \Carbon\Carbon::parse($transport->trajet->date_depart)->format('d/m/Y') }})
+                        </td>
+                        <td class="p-3">
+                            <ul>
+                                @foreach($transport->merchandises as $merchandise)
+                                    <li>{{ $merchandise->nom }} ({{ $merchandise->pivot->quantite }} {{ $merchandise->unite }})</li>
+                                @endforeach
+                            </ul>
+                        </td>
+                        <td class="p-3">{{ $transport->poids_kg }}</td>
+                        <td class="p-3">{{ ucfirst($transport->statut) }}</td>
+                        <td class="p-3 flex gap-2">
+                            <a href="{{ route('transports.edit', $transport) }}" class="text-blue-600 hover:underline">Modifier</a>
+                            <form action="{{ route('transports.destroy', $transport) }}" method="POST" onsubmit="return confirm('Confirmer la suppression ?')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="text-red-600 hover:underline">Supprimer</button>
+                            </form>
+                        </td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+
+        <!-- Pagination -->
+        <div class="mt-6">
+            {{ $transports->links() }}
+        </div>
+
+        <a href="{{ route('transports.create') }}" class="mt-6 inline-block bg-blue-600 text-white px-4 py-2 rounded">
+            Ajouter un transport
+        </a>
+    </div>
+</x-layouts.app>
