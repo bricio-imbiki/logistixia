@@ -144,7 +144,18 @@
                                 <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $activity->itineraire?->lieu_depart ?? '-' }} → {{ $activity->itineraire?->lieu_arrivee ?? '-' }}</p>
                                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ $activity->chauffeur?->nom ?? '-' }} | {{ $activity->camion?->accreditation ?? '-' }} | {{ \Carbon\Carbon::parse($activity->date_depart)->format('d/m/Y') }}</p>
                                 <p class="text-xs mt-1">
-                                    Statut: <span class="@if($activity->transport->first()?->statut === 'livree') text-green-600 dark:text-green-400 @elseif($activity->transport->first()?->statut === 'en_transit') text-yellow-600 dark:text-yellow-400 @elseif($activity->transport->first()?->statut === 'retour') text-red-600 dark:text-red-400 @else text-indigo-600 dark:text-indigo-400 @endif">{{ ucfirst($activity->transport->first()?->statut ?? '-') }}</span>
+                                  @php
+    $statut = $activity->transport?->statut;
+
+    $statutClass = match ($statut) {
+        'livree' => 'text-green-600 dark:text-green-400',
+        'en_transit' => 'text-yellow-600 dark:text-yellow-400',
+        'retour' => 'text-red-600 dark:text-red-400',
+        default => 'text-indigo-600 dark:text-indigo-400',
+    };
+@endphp
+
+Statut: <span class="{{ $statutClass }}">{{ ucfirst($statut ?? '-') }}</span>
                                 </p>
                             </div>
                         </div>
@@ -211,7 +222,7 @@
         async function fetchData(startDate, endDate, filter = 'all') {
             document.getElementById('loadingSpinner').classList.remove('hidden');
             try {
-                const response = await fetch(`{{ route('dashboard.index') }}?start_date=${startDate}&end_date=${endDate}&filter=${filter}`, {
+                const response = await fetch(`{{ route('dashboard') }}?start_date=${startDate}&end_date=${endDate}&filter=${filter}`, {
                     headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 });
                 const data = await response.json();

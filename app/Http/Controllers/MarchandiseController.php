@@ -10,7 +10,7 @@ use Exception;
 class MarchandiseController extends Controller
 {
     /**
-     * Validation unique pour la création et la mise à jour
+     * Validate request data for creating or updating a Marchandise.
      */
     protected function validateMarchandise(Request $request): array
     {
@@ -25,19 +25,8 @@ class MarchandiseController extends Controller
     }
 
     /**
-     * Gestion DRY d'une action en try/catch avec callback
+     * Display a listing of the resource.
      */
-    protected function safeExecute(callable $action, string $successMessage, string $errorMessage)
-    {
-        try {
-            $action();
-            return redirect()->route('marchandises.index')->with('success', $successMessage);
-        } catch (Exception $e) {
-            Log::error($errorMessage . ' : ' . $e->getMessage());
-            return back()->withInput()->withErrors(['error' => $errorMessage]);
-        }
-    }
-
     public function index(Request $request)
     {
         $marchandises = Marchandise::query()
@@ -51,44 +40,55 @@ class MarchandiseController extends Controller
         return view('marchandises.index', compact('marchandises'));
     }
 
-    public function create()
-    {
-        return view('marchandises.form', ['marchandise' => null]);
-    }
-
+    /**
+     * Store a newly created resource in storage.
+     */
     public function store(Request $request)
     {
         $validated = $this->validateMarchandise($request);
-
-        return $this->safeExecute(
-            fn() => Marchandise::create($validated),
-            'Marchandise ajoutée avec succès.',
-            'Erreur lors de l’enregistrement'
-        );
+        try {
+            $marchandise = Marchandise::create($validated);
+            return response()->json($marchandise, 200);
+        } catch (Exception $e) {
+            Log::error('Erreur lors de l’enregistrement : ' . $e->getMessage());
+            return response()->json(['message' => 'Erreur lors de l’enregistrement'], 500);
+        }
     }
 
+    /**
+     * Show the form for editing the specified resource.
+     */
     public function edit(Marchandise $marchandise)
     {
         return view('marchandises.form', compact('marchandise'));
     }
 
+    /**
+     * Update the specified resource in storage.
+     */
     public function update(Request $request, Marchandise $marchandise)
     {
         $validated = $this->validateMarchandise($request);
-
-        return $this->safeExecute(
-            fn() => $marchandise->update($validated),
-            'Marchandise mise à jour.',
-            'Erreur de mise à jour'
-        );
+        try {
+            $marchandise->update($validated);
+            return response()->json($marchandise, 200);
+        } catch (Exception $e) {
+            Log::error('Erreur de mise à jour : ' . $e->getMessage());
+            return response()->json(['message' => 'Erreur de mise à jour'], 500);
+        }
     }
 
+    /**
+     * Remove the specified resource from storage.
+     */
     public function destroy(Marchandise $marchandise)
     {
-        return $this->safeExecute(
-            fn() => $marchandise->delete(),
-            'Marchandise supprimée.',
-            'Erreur de suppression'
-        );
+        try {
+            $marchandise->delete();
+            return response()->json(['message' => 'Marchandise supprimée.'], 200);
+        } catch (Exception $e) {
+            Log::error('Erreur de suppression : ' . $e->getMessage());
+            return response()->json(['message' => 'Erreur de suppression'], 500);
+        }
     }
 }

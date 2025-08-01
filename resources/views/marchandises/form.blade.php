@@ -118,46 +118,72 @@
 
     <!-- JavaScript for Client-Side Validation and Feedback -->
     <script>
-        document.getElementById('marchandise-form').addEventListener('submit', function(event) {
-            event.preventDefault();
-            const form = this;
-            const notification = document.getElementById('form-notification');
-            const submitBtn = document.getElementById('submit-btn');
-            const submitText = document.getElementById('submit-text');
-            const submitSpinner = document.getElementById('submit-spinner');
+  document.getElementById('marchandise-form').addEventListener('submit', async function(event) {
+    event.preventDefault();
+    const form = this;
+    const notification = document.getElementById('form-notification');
+    const submitBtn = document.getElementById('submit-btn');
+    const submitText = document.getElementById('submit-text');
+    const submitSpinner = document.getElementById('submit-spinner');
 
-            // Reset notification
-            notification.classList.add('hidden');
+    // Reset notification
+    notification.classList.add('hidden');
 
-            // Validate inputs
-            let errors = [];
-            const nom = form.nom.value.trim();
-            const poids = form.poids_moyen.value;
-            const unite = form.unite.value;
-            const tarif = form.tarif_par_defaut.value;
+    // Validate inputs
+    let errors = [];
+    const nom = form.nom.value.trim();
+    const poids = form.poids_moyen.value;
+    const unite = form.unite.value;
+    const tarif = form.tarif_par_defaut.value;
 
-            if (!nom) errors.push('Le nom est requis.');
-            if (poids && poids < 0) errors.push('Le poids ne peut pas être négatif.');
-            if (!unite) errors.push('Veuillez sélectionner une unité.');
-            if (tarif && tarif < 0) errors.push('Le tarif ne peut pas être négatif.');
+    if (!nom) errors.push('Le nom est requis.');
+    if (poids && poids < 0) errors.push('Le poids ne peut pas être négatif.');
+    if (!unite) errors.push('Veuillez sélectionner une unité.');
+    if (tarif && tarif < 0) errors.push('Le tarif ne peut pas être négatif.');
 
-            if (errors.length > 0) {
-                notification.classList.remove('hidden', 'bg-green-50', 'text-green-700');
-                notification.classList.add('bg-red-50', 'text-red-700');
-                notification.innerHTML = errors.join('<br>');
-                return;
-            }
+    if (errors.length > 0) {
+        notification.classList.remove('hidden', 'bg-green-50', 'text-green-700');
+        notification.classList.add('bg-red-50', 'text-red-700');
+        notification.innerHTML = errors.join('<br>');
+        return;
+    }
 
-            // Show loading state
-            submitBtn.disabled = true;
-            submitText.classList.add('hidden');
-            submitSpinner.classList.remove('hidden');
+    // Show loading state
+    submitBtn.disabled = true;
+    submitText.classList.add('hidden');
+    submitSpinner.classList.remove('hidden');
 
-            // Simulate server submission (replace with actual fetch if needed)
-            setTimeout(() => {
-                // Submit form to Laravel
-                form.submit();
-            }, 500); // Delay for demo purposes
+    try {
+        const response = await fetch(form.action, {
+            method: form.method === 'POST' ? 'POST' : 'PUT',
+            body: new FormData(form),
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
+                'Accept': 'application/json',
+            },
         });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            notification.classList.remove('hidden', 'bg-red-50', 'text-red-700');
+            notification.classList.add('bg-green-50', 'text-green-700');
+            notification.textContent = data.success;
+            setTimeout(() => {
+                window.location.href = data.redirect;
+            }, 1000);
+        } else {
+            throw new Error(data.error || 'Erreur inconnue');
+        }
+    } catch (error) {
+        notification.classList.remove('hidden', 'bg-green-50', 'text-green-700');
+        notification.classList.add('bg-red-50', 'text-red-700');
+        notification.textContent = error.message;
+    } finally {
+        submitBtn.disabled = false;
+        submitText.classList.remove('hidden');
+        submitSpinner.classList.add('hidden');
+    }
+});
     </script>
 </x-layouts.app>

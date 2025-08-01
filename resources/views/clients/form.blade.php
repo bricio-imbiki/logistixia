@@ -17,7 +17,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <x-forms.input
                     name="raison_sociale"
-                    label="Raison sociale *"
+                    label="Raison sociale"
                     placeholder="Ex: Société XYZ"
                     :value="old('raison_sociale', $client->raison_sociale ?? '')"
                     required />

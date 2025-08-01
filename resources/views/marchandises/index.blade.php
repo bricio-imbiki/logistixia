@@ -1,4 +1,5 @@
 <x-layouts.app>
+
     <style>
         /* Custom scrollbar for better visibility */
         .custom-scroll::-webkit-scrollbar {
@@ -294,6 +295,14 @@
                 return;
             }
 
+            // Check CSRF token
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+            if (!csrfToken) {
+                showNotification(notification, 'Erreur: Jeton CSRF manquant.', 'error');
+                scrollToTopOfForm();
+                return;
+            }
+
             // Show loading
             submitBtn.disabled = true;
             submitText.classList.add('hidden');
@@ -303,7 +312,7 @@
                 const response = await fetch(url, {
                     method,
                     headers: {
-                        'X-CSRF-TOKEN': formData.get('_token'),
+                        'X-CSRF-TOKEN': csrfToken,
                         'Accept': 'application/json'
                     },
                     body: formData
@@ -336,7 +345,11 @@
 
         // Create another
         createAnotherBtn.addEventListener('click', () => {
-            form.querySelector('input[name="create_another"]').value = '1';
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'create_another';
+            input.value = '1';
+            form.appendChild(input);
             form.dispatchEvent(new Event('submit'));
         });
 
@@ -398,7 +411,54 @@
             const row = document.createElement('tr');
             row.className = 'border-t hover:bg-gray-50 transition duration-100';
             row.dataset.id = data.id;
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+            if (!csrfToken) {
+                showNotification(notification, 'Erreur: Jeton CSRF manquant.', 'error');
+                return;
+            }
             row.innerHTML = `
+                <td class="px-6 py-4 font-medium text-gray-900">${data.nom}</td>
+                <td class="px-6 py-4">${data.reference || ''}</td>
+                <td class="px-6 py-4">${data.categorie || ''}</td>
+                <td class="px-6 py-4">${data.poids_moyen || ''}</td>
+                <td class="px-6 py-4">${data.unite || ''}</td>
+                <td class="px-6 py-4">${data.tarif_par_defaut ? data.tarif_par_defaut.toLocaleString('fr-FR') + ' Ar' : ''}</td>
+                <td class="px-6 py-4 text-right flex justify-end gap-2">
+                    <button class="open-edit-modal text-blue-600 hover:text-blue-800" data-id="${data.id}"
+                            data-nom="${data.nom}" data-reference="${data.reference || ''}" data-categorie="${data.categorie || ''}"
+                            data-poids="${data.poids_moyen || ''}" data-unite="${data.unite || ''}" data-tarif="${data.tarif_par_defaut || ''}"
+                            title="Modifier">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                        </svg>
+                    </button>
+                    <form action="/marchandises/${data.id}" method="POST" onsubmit="return confirm('Supprimer cette marchandise ?')">
+                        <input type="hidden" name="_token" value="${csrfToken}">
+                        <input type="hidden" name="_method" value="DELETE">
+                        <button type="submit" class="text-red-600 hover:text-red-800" title="Supprimer">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                        </button>
+                    </form>
+                </td>
+            `;
+            tableBody.prepend(row);
+            row.querySelector('.open-edit-modal').addEventListener('click', () => openEditModal(row.querySelector(
+                '.open-edit-modal')));
+        }
+
+        function updateTableRow(data) {
+            const row = tableBody.querySelector(`tr[data-id="${data.id}"]`);
+            if (row) {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+                if (!csrfToken) {
+                    showNotification(notification, 'Erreur: Jeton CSRF manquant.', 'error');
+                    return;
+                }
+                row.innerHTML = `
                     <td class="px-6 py-4 font-medium text-gray-900">${data.nom}</td>
                     <td class="px-6 py-4">${data.reference || ''}</td>
                     <td class="px-6 py-4">${data.categorie || ''}</td>
@@ -416,7 +476,7 @@
                             </svg>
                         </button>
                         <form action="/marchandises/${data.id}" method="POST" onsubmit="return confirm('Supprimer cette marchandise ?')">
-                            <input type="hidden" name="_token" value="${document.querySelector('meta[name="csrf-token"]').content}">
+                            <input type="hidden" name="_token" value="${csrfToken}">
                             <input type="hidden" name="_method" value="DELETE">
                             <button type="submit" class="text-red-600 hover:text-red-800" title="Supprimer">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -427,47 +487,9 @@
                         </form>
                     </td>
                 `;
-            tableBody.prepend(row);
-            row.querySelector('.open-edit-modal').addEventListener('click', () => openEditModal(row.querySelector(
-                '.open-edit-modal')));
-        }
-
-        function updateTableRow(data) {
-            const row = tableBody.querySelector(`tr[data-id="${data.id}"]`);
-            if (row) {
-                row.innerHTML = `
-                        <td class="px-6 py-4 font-medium text-gray-900">${data.nom}</td>
-                        <td class="px-6 py-4">${data.reference || ''}</td>
-                        <td class="px-6 py-4">${data.categorie || ''}</td>
-                        <td class="px-6 py-4">${data.poids_moyen || ''}</td>
-                        <td class="px-6 py-4">${data.unite || ''}</td>
-                        <td class="px-6 py-4">${data.tarif_par_defaut ? data.tarif_par_defaut.toLocaleString('fr-FR') + ' Ar' : ''}</td>
-                        <td class="px-6 py-4 text-right flex justify-end gap-2">
-                            <button class="open-edit-modal text-blue-600 hover:text-blue-800" data-id="${data.id}"
-                                    data-nom="${data.nom}" data-reference="${data.reference || ''}" data-categorie="${data.categorie || ''}"
-                                    data-poids="${data.poids_moyen || ''}" data-unite="${data.unite || ''}" data-tarif="${data.tarif_par_defaut || ''}"
-                                    title="Modifier">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                          d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
-                                </svg>
-                            </button>
-                            <form action="/marchandises/${data.id}" method="POST" onsubmit="return confirm('Supprimer cette marchandise ?')">
-                                <input type="hidden" name="_token" value="${document.querySelector('meta[name="csrf-token"]').content}">
-                                <input type="hidden" name="_method" value="DELETE">
-                                <button type="submit" class="text-red-600 hover:text-red-800" title="Supprimer">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                </svg>
-                            </button>
-                        </form>
-                    </td>
-                    `;
                 row.querySelector('.open-edit-modal').addEventListener('click', () => openEditModal(row.querySelector(
                     '.open-edit-modal')));
             }
         }
     </script>
-
 </x-layouts.app>
